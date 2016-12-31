@@ -11,6 +11,9 @@ from datetime import datetime
 import os
 import sys
 import time
+
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from PIL import Image
 
@@ -19,7 +22,7 @@ import numpy as np
 
 from deeplab_resnet import DeepLabResNetModel, ImageReader, decode_labels, prepare_label
 
-DATA_DIRECTORY = '/home/vladimir/VOCdevkit'
+DATA_DIRECTORY = '/home/VOCdevkit'
 DATA_LIST_PATH = './dataset/val.txt'
 NUM_STEPS = 1449 # number of images
 RESTORE_FROM = './deeplab_resnet.ckpt'
