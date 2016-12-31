@@ -11,8 +11,10 @@ import argparse
 from datetime import datetime
 import os
 import sys
-sys.path.append('../')
 import time
+
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import tensorflow as tf
@@ -23,7 +25,7 @@ from deeplab_resnet import DeepLabResNetModel, ImageReader, decode_labels, prepa
 n_classes = 21
 
 BATCH_SIZE = 4
-DATA_DIRECTORY = '/home/vladimir/VOCdevkit'
+DATA_DIRECTORY = '/home/VOCdevkit'
 DATA_LIST_PATH = './dataset/train.txt'
 INPUT_SIZE = '321,321'
 LEARNING_RATE = 1e-6
@@ -35,7 +37,6 @@ SAVE_DIR = './images_no_index/'
 SAVE_NUM_IMAGES = 2
 SAVE_PRED_EVERY = 100
 SNAPSHOT_DIR = './snapshots_no_index/'
-WEIGHTS_PATH   = "from_caffe/net_weights.cpkt"
 
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 
@@ -68,9 +69,6 @@ def get_arguments():
                         help="Save figure with predictions and ground truth every often.")
     parser.add_argument("--snapshot_dir", type=str, default=SNAPSHOT_DIR,
                         help="Where to save snapshots of the model.")
-    parser.add_argument("--weights_path", type=str, default=WEIGHTS_PATH,
-                        help="Path to the file with caffemodel weights. "
-                             "If not set, all the variables are initialised randomly.")
     return parser.parse_args()
 
 def save(saver, sess, logdir, step):
