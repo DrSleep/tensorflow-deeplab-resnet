@@ -1,6 +1,8 @@
 from PIL import Image
 import numpy as np
+import tensorflow as tf
 
+n_classes = 21
 # colour map
 label_colours = [(0,0,0)
                 # 0=background
@@ -26,7 +28,7 @@ def decode_labels(mask):
     pixels = img.load()
     for j_, j in enumerate(mask):
         for k_, k in enumerate(j):
-            if k < 21:
+            if k < n_classes:
                 pixels[k_,j_] = label_colours[k]
     return np.array(img)
 
