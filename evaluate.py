@@ -10,7 +10,6 @@ import argparse
 from datetime import datetime
 import os
 import sys
-sys.path.append('../')
 import time
 import matplotlib.pyplot as plt
 from PIL import Image
