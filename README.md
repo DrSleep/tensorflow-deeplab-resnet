@@ -1,5 +1,5 @@
 # DeepLab-ResNet-TensorFlow
-This is an (re-)implementation of [DeepLab-ResNet](http://liangchiehchen.com/projects/DeepLabv2_resnet.html) in TensorFlow for semantic image segmentation on [PASCAL VOC dataset](http://host.robots.ox.ac.uk/pascal/VOC/).
+This is an (re-)implementation of [DeepLab-ResNet](http://liangchiehchen.com/projects/DeepLabv2_resnet.html) in TensorFlow for semantic image segmentation on the [PASCAL VOC dataset](http://host.robots.ox.ac.uk/pascal/VOC/).
 
 ## Model Description
 
@@ -48,6 +48,8 @@ To see the documentation on each of the training settings run the following:
 ```bash
 python train.py --help
 ```
+<img src="images/train.png"></img>
+
 ## Evaluation
 
 The single-scale model shows <code>76.5%</code> mIoU on the Pascal VOC 2012 validation dataset. No post-processing step with CRF is being used.
