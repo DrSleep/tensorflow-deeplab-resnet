@@ -172,6 +172,7 @@ def main():
                 axes.flat[i * 3 + 2].set_title('pred')
                 axes.flat[i * 3 + 2].imshow(decode_labels(preds[i, :, :, 0]))
             plt.savefig(args.save_dir + str(start_time) + ".png")
+            plt.close(fig)
             save(saver, sess, args.snapshot_dir, step)
         else:
             loss_value, _ = sess.run([reduced_loss, optim])
