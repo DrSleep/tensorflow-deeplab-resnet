@@ -40,6 +40,16 @@ pip install -user -r requirements.txt
 To imitate the structure of the model, we have used `.caffemodel` files provided by the [authors](http://liangchiehchen.com/projects/DeepLabv2_resnet.html). The conversion has been performed using [Caffe to TensorFlow](https://github.com/ethereon/caffe-tensorflow) with an additional configuration for atrous convolution. 
 There is no need to perform the conversion yourself as you can download the already converted model (`deeplab_resnet.ckpt`) [here](https://drive.google.com/open?id=0B_rootXHuswsTF90M1NWQmFYelU).
 
+Nevertheless, it is easy to perform the conversion manually, given that the `.caffemodel` file has been downloaded, and [Caffe to TensorFlow](https://github.com/ethereon/caffe-tensorflow) dependencies have been installed. The Caffe model definition is provided in `misc/deploy.prototxt`. 
+To extract weights from `.caffemodel`, run the following :
+```bash
+python convert.py /path/to/deploy/prototxt --caffemodel /path/to/caffemodel --data-output-path /where/to/save/numpy/weights
+```
+As a result of running the command above, the model weights will be stored in `/where/to/save/numpy/weights`. To convert them to `.ckpt`, simply execute:
+```bash
+python npy2ckpt.py /where/to/save/numpy/weights --save_dir=/where/to/save/ckpt/weights
+```
+
 ## Dataset and Training
 
 To train the network, one can use the augmented PASCAL VOC 2012 dataset with <code>10582</code> images for training and <code>1449</code> images for validation. 
