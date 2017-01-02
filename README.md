@@ -41,7 +41,7 @@ To imitate the structure of the model, we have used `.caffemodel` files provided
 There is no need to perform the conversion yourself as you can download the already converted model (`deeplab_resnet.ckpt`) [here](https://drive.google.com/open?id=0B_rootXHuswsTF90M1NWQmFYelU).
 
 Nevertheless, it is easy to perform the conversion manually, given that the `.caffemodel` file has been downloaded, and [Caffe to TensorFlow](https://github.com/ethereon/caffe-tensorflow) dependencies have been installed. The Caffe model definition is provided in `misc/deploy.prototxt`. 
-To extract weights from `.caffemodel`, run the following :
+To extract weights from `.caffemodel`, run the following:
 ```bash
 python convert.py /path/to/deploy/prototxt --caffemodel /path/to/caffemodel --data-output-path /where/to/save/numpy/weights
 ```
