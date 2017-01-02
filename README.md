@@ -38,7 +38,7 @@ pip install -user -r requirements.txt
 ## Caffe to TensorFlow conversion
 
 To imitate the structure of the model, we have used `.caffemodel` files provided by the [authors](http://liangchiehchen.com/projects/DeepLabv2_resnet.html). The conversion has been performed using [Caffe to TensorFlow](https://github.com/ethereon/caffe-tensorflow) with an additional configuration for atrous convolution. 
-There is no need to perform the conversion yourself as you can download the already converted model [here](https://drive.google.com/open?id=0B_rootXHuswsTF90M1NWQmFYelU).
+There is no need to perform the conversion yourself as you can download the already converted model (`deeplab_resnet.ckpt`) [here](https://drive.google.com/open?id=0B_rootXHuswsTF90M1NWQmFYelU).
 
 ## Dataset and Training
 
@@ -61,7 +61,7 @@ python evaluate.py --help
 
 ## Inference
 
-To perform inference your own images, use the following command:
+To perform inference over your own images, use the following command:
 ```bash
 python inference.py /path/to/your/image /path/to/ckpt/file
 ```
