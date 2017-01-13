@@ -63,7 +63,10 @@ def main():
     img -= IMG_MEAN 
     
     # Create network.
-    net = DeepLabResNetModel({'data': tf.expand_dims(img, dim=0)})
+    net = DeepLabResNetModel({'data': tf.expand_dims(img, dim=0)}, is_training=False)
+
+    # Which variables to load.
+    restore_var = tf.all_variables()
 
     # Predictions.
     raw_output = net.layers['fc1_voc12']
@@ -71,8 +74,6 @@ def main():
     raw_output_up = tf.argmax(raw_output_up, dimension=3)
     pred = tf.expand_dims(raw_output_up, dim=3)
 
-    # Which variables to load.
-    trainable = tf.trainable_variables()
     
     # Set up TF session and initialize variables. 
     config = tf.ConfigProto()
@@ -83,8 +84,8 @@ def main():
     sess.run(init)
     
     # Load weights.
-    saver = tf.train.Saver(var_list=trainable)
-    load(saver, sess, args.model_weights)
+    loader = tf.train.Saver(var_list=restore_var)
+    load(loader, sess, args.model_weights)
     
     # Perform inference.
     preds = sess.run([pred])
