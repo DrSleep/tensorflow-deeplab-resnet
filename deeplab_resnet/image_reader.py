@@ -40,7 +40,6 @@ def read_images_from_disk(input_queue, input_size, random_scale): # optional pre
     Returns:
       Two tensors: the decoded image and its mask.
     """
-    seed = np.random.randn()
     img_contents = tf.read_file(input_queue[0])
     label_contents = tf.read_file(input_queue[1])
     
@@ -49,9 +48,6 @@ def read_images_from_disk(input_queue, input_size, random_scale): # optional pre
     if input_size is not None:
         h, w = input_size
         if random_scale:
-            #scale = np.random.uniform(low=0.75, high=1.25)
-            #h_new, w_new = tf.to_int32(h * scale), tf.to_int32(w * scale)
-            #print (h_new, w_new)
             scale = tf.random_uniform([1], minval=0.75, maxval=1.25, dtype=tf.float32, seed=None)
             h_new = tf.to_int32(tf.mul(tf.to_float(tf.shape(img)[1]), scale))
             w_new = tf.to_int32(tf.mul(tf.to_float(tf.shape(img)[1]), scale))
@@ -61,18 +57,10 @@ def read_images_from_disk(input_queue, input_size, random_scale): # optional pre
             label = tf.image.resize_nearest_neighbor(tf.expand_dims(label, 0), new_shape)
             label = tf.squeeze(label, squeeze_dims=[0])
         img = tf.image.resize_image_with_crop_or_pad(img, h, w)
-        #img = tf.random_crop(img, [h, w, 3], seed=seed)
-        #img = tf.pad(img, [[513 - i])
-
         label = tf.image.resize_image_with_crop_or_pad(label, h, w)
-        #label = tf.random_crop(label, [h, w, 1], seed=seed)
-        #label = tf.image.resize_nearest_neighbor(tf.expand_dims(label, 0), [41, 41])
-        #label = tf.squeeze(label, squeeze_dims=[0, 3])
-        #label = tf.squeeze(label, squeeze_dims=[2])
-        #label = tf.one_hot(label, depth=21)
     img_r, img_g, img_b = tf.split(split_dim=2, num_split=3, value=img)
     img = tf.cast(tf.concat(2, [img_b, img_g, img_r]), dtype=tf.float32)
-        # extract mean
+    # extract mean
     img -= IMG_MEAN 
     return img, label
 
