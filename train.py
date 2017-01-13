@@ -113,10 +113,20 @@ def main():
         image_batch, label_batch = reader.dequeue(args.batch_size)
     
     # Create network.
-    net = DeepLabResNetModel({'data': image_batch})
+    net = DeepLabResNetModel({'data': image_batch}, is_training=False)
+    # For a small batch size, it is better to keep 
+    # the statistics of the BN layers (running means and variances)
+    # frozen, and to not update the values provided by the pre-trained model. 
+    # If is_training=True, the statistics will be updated during the training.
+    # Note that is_training=False still updates BN parameters gamma (scale) and beta (offset)
+    # if they are presented in var_list of the optimiser definition.
 
     # Predictions.
     raw_output = net.layers['fc1_voc12']
+    # Which variables to load. Running means and variances are not trainable,
+    # thus all_variables() should be restored.
+    restore_var = tf.all_variables()
+    
     
     prediction = tf.reshape(raw_output, [-1, n_classes])
     label_proc = prepare_label(label_batch, tf.pack(raw_output.get_shape()[1:3]))
@@ -145,9 +155,12 @@ def main():
     sess.run(init)
     
     # Saver for storing checkpoints of the model.
-    saver = tf.train.Saver(var_list=trainable, max_to_keep=40)
+    saver = tf.train.Saver(var_list=restore_var, max_to_keep=40)
+    
+    # Load variables if the checkpoint is provided.
     if args.restore_from is not None:
-        load(saver, sess, args.restore_from)
+        loader = tf.train.Saver(var_list=restore_var)
+        load(loader, sess, args.restore_from)
     
     # Start queue threads.
     threads = tf.train.start_queue_runners(coord=coord, sess=sess)
