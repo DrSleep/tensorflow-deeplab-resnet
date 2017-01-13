@@ -24,7 +24,7 @@ from deeplab_resnet import DeepLabResNetModel, ImageReader, decode_labels, prepa
 
 DATA_DIRECTORY = '/home/VOCdevkit'
 DATA_LIST_PATH = './dataset/val.txt'
-NUM_STEPS = 1449 # number of images
+NUM_STEPS = 1449 # Number of images in the validation set.
 RESTORE_FROM = './deeplab_resnet.ckpt'
 SAVE_DIR = './images_val/'
 
@@ -73,17 +73,16 @@ def main():
             args.data_dir,
             args.data_list,
             None,
-            False,
-            ## args preprocessing: random_scale, crop, mirror 
+            False, # No random scale.
             coord)
         image, label = reader.image, reader.label
-    image_batch, label_batch = tf.expand_dims(image, dim=0), tf.expand_dims(label, dim=0) # add one batch dimension.
+    image_batch, label_batch = tf.expand_dims(image, dim=0), tf.expand_dims(label, dim=0) # Add one batch dimension.
 
     # Create network.
-    net = DeepLabResNetModel({'data': image_batch})
+    net = DeepLabResNetModel({'data': image_batch}, is_training=False)
 
     # Which variables to load.
-    trainable = tf.trainable_variables()
+    restore_var = tf.all_variables()
     
     # Predictions.
     raw_output = net.layers['fc1_voc12']
@@ -104,23 +103,16 @@ def main():
     sess.run(tf.initialize_local_variables())
     
     # Load weights.
-    saver = tf.train.Saver(var_list=trainable)
+    loader = tf.train.Saver(var_list=restore_var)
     if args.restore_from is not None:
-        load(saver, sess, args.restore_from)
+        load(loader, sess, args.restore_from)
     
     # Start queue threads.
     threads = tf.train.start_queue_runners(coord=coord, sess=sess)
     
     # Iterate over training steps.
     for step in range(args.num_steps):
-        #mIoU_value = sess.run([mIoU])
-        #_ = update_op.eval(session=sess)
         preds, _ = sess.run([pred, update_op])
-        
-        # make the below optional
-        #img = decode_labels(preds[0, :, :, 0])
-        #im = Image.fromarray(img)
-        #im.save(args.save_dir + str(step) + '.png')
         if step % 100 == 0:
             print('step {:d} \t'.format(step))
     print('Mean IoU: {:.3f}'.format(mIoU.eval(session=sess)))
