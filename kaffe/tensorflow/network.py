@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+slim = tf.contrib.slim
 
 DEFAULT_PADDING = 'SAME'
 
@@ -31,7 +32,7 @@ def layer(op):
 
 class Network(object):
 
-    def __init__(self, inputs, trainable=True):
+    def __init__(self, inputs, trainable=True, is_training=False):
         # The input nodes for this network
         self.inputs = inputs
         # The current list of terminal nodes
@@ -44,9 +45,9 @@ class Network(object):
         self.use_dropout = tf.placeholder_with_default(tf.constant(1.0),
                                                        shape=[],
                                                        name='use_dropout')
-        self.setup()
+        self.setup(is_training)
 
-    def setup(self):
+    def setup(self, is_training):
         '''Construct the network. '''
         raise NotImplementedError('Must be implemented by the subclass.')
 
@@ -278,6 +279,17 @@ class Network(object):
                 name=name)
             if relu:
                 output = tf.nn.relu(output)
+            return output
+        
+    @layer
+    def batch_normalization_slim(self, input, name, is_training, activation_fn=None):
+        with tf.variable_scope(name) as scope:
+            output = slim.batch_norm(
+                input,
+                activation_fn=activation_fn,
+                is_training=is_training,
+                updates_collections=None,
+                scale=True)
             return output
 
     @layer
