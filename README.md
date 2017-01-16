@@ -24,7 +24,7 @@ For more details on the underlying model please refer to the following paper:
 ## Requirements
 
 TensorFlow needs to be installed before running the scripts.
-TensorFlow>=0.11 is supported.
+TensorFlow>=0.12 is supported.
 
 To install the required python packages (except TensorFlow), run
 ```bash
