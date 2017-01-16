@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
 
-from deeplab_resnet import DeepLabResNetModel, ImageReader, decode_labels, prepare_label
+from deeplab_resnet import DeepLabResNetModel, ImageReader, decode_labels, inv_preprocess, prepare_label
 
 n_classes = 21
 
@@ -140,6 +140,16 @@ def main():
     raw_output_up = tf.argmax(raw_output_up, dimension=3)
     pred = tf.expand_dims(raw_output_up, dim=3)
     
+    # Image summary.
+    images_summary = tf.py_func(inv_preprocess, [image_batch, args.save_num_images], tf.uint8)
+    labels_summary = tf.py_func(decode_labels, [label_batch, args.save_num_images], tf.uint8)
+    preds_summary = tf.py_func(decode_labels, [pred, args.save_num_images], tf.uint8)
+    
+    total_summary = tf.summary.image('images', 
+                                     tf.concat(2, [images_summary, labels_summary, preds_summary]), 
+                                     max_outputs=args.save_num_images) # Concatenate row-wise.
+    summary_writer = tf.summary.FileWriter(args.snapshot_dir)
+   
     # Define loss and optimisation parameters.
     optimiser = tf.train.AdamOptimizer(learning_rate=args.learning_rate)
     trainable = tf.trainable_variables()
@@ -172,19 +182,8 @@ def main():
         start_time = time.time()
         
         if step % args.save_pred_every == 0:
-            loss_value, images, labels, preds, _ = sess.run([reduced_loss, image_batch, label_batch, pred, optim])
-            fig, axes = plt.subplots(args.save_num_images, 3, figsize = (16, 12))
-            for i in xrange(args.save_num_images):
-                axes.flat[i * 3].set_title('data')
-                axes.flat[i * 3].imshow((images[i] + IMG_MEAN)[:, :, ::-1].astype(np.uint8))
-
-                axes.flat[i * 3 + 1].set_title('mask')
-                axes.flat[i * 3 + 1].imshow(decode_labels(labels[i, :, :, 0]))
-
-                axes.flat[i * 3 + 2].set_title('pred')
-                axes.flat[i * 3 + 2].imshow(decode_labels(preds[i, :, :, 0]))
-            plt.savefig(args.save_dir + str(start_time) + ".png")
-            plt.close(fig)
+            loss_value, images, labels, preds, summary, _ = sess.run([reduced_loss, image_batch, label_batch, pred, total_summary, optim])
+            summary_writer.add_summary(summary, step)
             save(saver, sess, args.snapshot_dir, step)
         else:
             loss_value, _ = sess.run([reduced_loss, optim])
