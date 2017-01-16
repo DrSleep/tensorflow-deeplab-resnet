@@ -28,7 +28,7 @@ def decode_labels(mask, num_images):
       A batch with num_images RGB images of the same size as the input. 
     """
     n, h, w, c = mask.shape
-    assert(n >= num_images, 'Batch size %d should be greater or equal than number of images to save %d.' % (n, num_images))
+    assert(n >= num_images), 'Batch size %d should be greater or equal than number of images to save %d.' % (n, num_images)
     outputs = np.zeros((num_images, h, w, 3), dtype=np.uint8)
     for i in range(num_images):
       img = Image.new('RGB', (len(mask[i, 0]), len(mask[i])))
@@ -69,7 +69,7 @@ def inv_preprocess(imgs, num_images):
     The batch of the size num_images with the same spatial dimensions as the input.
   """
   n, h, w, c = imgs.shape
-  assert(n >= num_images, 'Batch size %d should be greater or equal than number of images to save %d.' % (n, num_images))
+  assert(n >= num_images), 'Batch size %d should be greater or equal than number of images to save %d.' % (n, num_images)
   outputs = np.zeros((num_images, h, w, c), dtype=np.uint8)
   for i in range(num_images):
     outputs[i] = (imgs[i] + IMG_MEAN)[:, :, ::-1].astype(np.uint8)
