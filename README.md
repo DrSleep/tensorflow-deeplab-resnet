@@ -58,7 +58,9 @@ To see the documentation on each of the training settings run the following:
 ```bash
 python train.py --help
 ```
-<img src="images/train.png"></img>
+
+The training script also allows to monitor the optimisation process usign image summaries.
+<img src="images/summary.png"></img>
 
 ## Evaluation
 
