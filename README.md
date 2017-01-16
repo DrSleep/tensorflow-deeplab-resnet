@@ -59,7 +59,7 @@ To see the documentation on each of the training settings run the following:
 python train.py --help
 ```
 
-The training script also allows to monitor the optimisation process usign image summaries.
+The training script also allows to monitor the optimisation process using TensorBoard's image summary.
 <img src="images/summary.png"></img>
 
 ## Evaluation
