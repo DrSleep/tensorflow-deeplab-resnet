@@ -15,22 +15,28 @@ label_colours = [(0,0,0)
                 ,(0,64,0),(128,64,0),(0,192,0),(128,192,0),(0,64,128)]
                 # 16=potted plant, 17=sheep, 18=sofa, 19=train, 20=tv/monitor
     
-def decode_labels(mask):
+def decode_labels(mask, num_images):
     """Decode batch of segmentation masks.
     
     Args:
-      label_batch: result of inference after taking argmax.
+      mask: result of inference after taking argmax.
+      num_images: number of images to decode from the batch.
     
     Returns:
-      An batch of RGB images of the same size
+      A batch with num_images RGB images of the same size as the input. 
     """
-    img = Image.new('RGB', (len(mask[0]), len(mask)))
-    pixels = img.load()
-    for j_, j in enumerate(mask):
-        for k_, k in enumerate(j):
-            if k < n_classes:
-                pixels[k_,j_] = label_colours[k]
-    return np.array(img)
+    n, h, w, c = mask.shape
+    assert(n >= num_images, 'Batch size %d should be greater or equal than number of images to save %d.' % (n, num_images))
+    outputs = np.zeros((num_images, h, w, 3), dtype=np.uint8)
+    for i in range(num_images):
+      img = Image.new('RGB', (len(mask[i, 0]), len(mask[i])))
+      pixels = img.load()
+      for j_, j in enumerate(mask[i]):
+          for k_, k in enumerate(j):
+              if k < n_classes:
+                  pixels[k_,j_] = label_colours[k]
+      outputs[i] = np.array(img)
+    return outputs
 
 def prepare_label(input_batch, new_size):
     """Resize masks and perform one-hot encoding.
