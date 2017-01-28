@@ -48,7 +48,7 @@ def main():
     image_batch = tf.constant(0, tf.float32, shape=[1, 321, 321, 3]) 
     # Create network.
     net = DeepLabResNetModel({'data': image_batch})
-    var_list = tf.trainable_variables()
+    var_list = tf.global_variables()
           
     # Set up tf session and initialize variables. 
     config = tf.ConfigProto()
@@ -62,7 +62,7 @@ def main():
           net.load(args.npy_path, sess)
           
           # Saver for converting the loaded weights into .ckpt.
-          saver = tf.train.Saver(var_list=var_list)
+          saver = tf.train.Saver(var_list=var_list, write_version=1)
           save(saver, sess, args.save_dir)
 
 if __name__ == '__main__':

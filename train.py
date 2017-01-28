@@ -13,10 +13,6 @@ import os
 import sys
 import time
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
 import tensorflow as tf
 import numpy as np
 
@@ -28,16 +24,12 @@ BATCH_SIZE = 4
 DATA_DIRECTORY = '/home/VOCdevkit'
 DATA_LIST_PATH = './dataset/train.txt'
 INPUT_SIZE = '321,321'
-LEARNING_RATE = 1e-6
+LEARNING_RATE = 1e-4
 NUM_STEPS = 20000
-RANDOM_SCALE = True
 RESTORE_FROM = './deeplab_resnet.ckpt'
-SAVE_DIR = './images_no_index/'
 SAVE_NUM_IMAGES = 2
 SAVE_PRED_EVERY = 100
-SNAPSHOT_DIR = './snapshots_no_index/'
-
-IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
+SNAPSHOT_DIR = './snapshots/'
 
 def get_arguments():
     """Parse all the arguments provided from the CLI.
@@ -58,14 +50,14 @@ def get_arguments():
                         help="Learning rate for training.")
     parser.add_argument("--num_steps", type=int, default=NUM_STEPS,
                         help="Number of training steps.")
+    parser.add_argument("--random_scale", action="store_true",
+                        help="Whether to randomly scale the inputs during the training.")
     parser.add_argument("--restore_from", type=str, default=RESTORE_FROM,
                         help="Where restore model parameters from.")
-    parser.add_argument("--save_dir", type=str, default=SAVE_DIR,
-                        help="Where to save figures with predictions.")
     parser.add_argument("--save_num_images", type=int, default=SAVE_NUM_IMAGES,
                         help="How many images to save.")
     parser.add_argument("--save_pred_every", type=int, default=SAVE_PRED_EVERY,
-                        help="Save figure with predictions and ground truth every often.")
+                        help="Save summaries and checkpoint every often.")
     parser.add_argument("--snapshot_dir", type=str, default=SNAPSHOT_DIR,
                         help="Where to save snapshots of the model.")
     return parser.parse_args()
@@ -107,7 +99,7 @@ def main():
             args.data_dir,
             args.data_list,
             input_size,
-            RANDOM_SCALE,
+            args.random_scale,
             coord)
         image_batch, label_batch = reader.dequeue(args.batch_size)
     
@@ -125,6 +117,7 @@ def main():
     # Which variables to load. Running means and variances are not trainable,
     # thus all_variables() should be restored.
     restore_var = tf.all_variables()
+    trainable = tf.trainable_variables()
     
     
     prediction = tf.reshape(raw_output, [-1, n_classes])
@@ -152,7 +145,6 @@ def main():
    
     # Define loss and optimisation parameters.
     optimiser = tf.train.AdamOptimizer(learning_rate=args.learning_rate)
-    trainable = tf.trainable_variables()
     optim = optimiser.minimize(reduced_loss, var_list=trainable)
     
     # Set up tf session and initialize variables. 
@@ -174,9 +166,6 @@ def main():
     # Start queue threads.
     threads = tf.train.start_queue_runners(coord=coord, sess=sess)
 
-    if not os.path.exists(args.save_dir):
-        os.makedirs(args.save_dir)
-        
     # Iterate over training steps.
     for step in range(args.num_steps):
         start_time = time.time()

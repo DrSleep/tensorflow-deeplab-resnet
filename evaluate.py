@@ -1,7 +1,7 @@
 """Evaluation script for the DeepLab-ResNet network on the validation subset
    of PASCAL VOC dataset.
 
-This script evaluates the model on around 1500 validation images.
+This script evaluates the model on 1449 validation images.
 """
 
 from __future__ import print_function
@@ -12,23 +12,15 @@ import os
 import sys
 import time
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from PIL import Image
-
 import tensorflow as tf
 import numpy as np
 
-from deeplab_resnet import DeepLabResNetModel, ImageReader, decode_labels, prepare_label
+from deeplab_resnet import DeepLabResNetModel, ImageReader, prepare_label
 
 DATA_DIRECTORY = '/home/VOCdevkit'
 DATA_LIST_PATH = './dataset/val.txt'
 NUM_STEPS = 1449 # Number of images in the validation set.
 RESTORE_FROM = './deeplab_resnet.ckpt'
-SAVE_DIR = './images_val/'
-
-IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 
 def get_arguments():
     """Parse all the arguments provided from the CLI.
@@ -45,8 +37,6 @@ def get_arguments():
                         help="Number of images in the validation set.")
     parser.add_argument("--restore_from", type=str, default=RESTORE_FROM,
                         help="Where restore model parameters from.")
-    parser.add_argument("--save_dir", type=str, default=SAVE_DIR,
-                        help="Where to save predicted masks.")
     return parser.parse_args()
 
 def load(saver, sess, ckpt_path):
@@ -72,7 +62,7 @@ def main():
         reader = ImageReader(
             args.data_dir,
             args.data_list,
-            None,
+            None, # No defined input size.
             False, # No random scale.
             coord)
         image, label = reader.image, reader.label
@@ -91,7 +81,10 @@ def main():
     pred = tf.expand_dims(raw_output, dim=3) # Create 4-d tensor.
     
     # mIoU
-    mIoU, update_op = tf.contrib.metrics.streaming_mean_iou(pred, label_batch, num_classes=21) 
+    pred = tf.reshape(pred, [-1,])
+    gt = tf.reshape(label_batch, [-1,])
+    weights = tf.cast(tf.less_equal(gt, 20), tf.int32) # Ignore void label '255'.
+    mIoU, update_op = tf.contrib.metrics.streaming_mean_iou(pred, gt, num_classes=21, weights=weights)
     
     # Set up tf session and initialize variables. 
     config = tf.ConfigProto()
@@ -114,7 +107,7 @@ def main():
     for step in range(args.num_steps):
         preds, _ = sess.run([pred, update_op])
         if step % 100 == 0:
-            print('step {:d} \t'.format(step))
+            print('step {:d}'.format(step))
     print('Mean IoU: {:.3f}'.format(mIoU.eval(session=sess)))
     coord.request_stop()
     coord.join(threads)

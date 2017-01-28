@@ -88,10 +88,10 @@ def main():
     load(loader, sess, args.model_weights)
     
     # Perform inference.
-    preds = sess.run([pred])
+    preds = sess.run(pred)
     
-    msk = decode_labels(np.array(preds)[0, 0, :, :, 0])
-    im = Image.fromarray(msk)
+    msk = decode_labels(preds)
+    im = Image.fromarray(msk[0])
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
     im.save(args.save_dir + 'mask.png')
