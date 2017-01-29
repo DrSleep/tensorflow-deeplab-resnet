@@ -48,7 +48,7 @@ def main():
     image_batch = tf.constant(0, tf.float32, shape=[1, 321, 321, 3]) 
     # Create network.
     net = DeepLabResNetModel({'data': image_batch})
-    var_list = tf.global_variables()
+    var_list = tf.all_variables()
           
     # Set up tf session and initialize variables. 
     config = tf.ConfigProto()
