@@ -35,7 +35,7 @@ def get_arguments():
                         help="Path to the RGB image file.")
     parser.add_argument("model_weights", type=str,
                         help="Path to the file with model weights.")
-    parser.add_argument("--save_dir", type=str, default=SAVE_DIR,
+    parser.add_argument("--save-dir", type=str, default=SAVE_DIR,
                         help="Where to save predicted mask.")
     return parser.parse_args()
 
