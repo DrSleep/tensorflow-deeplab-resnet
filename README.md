@@ -1,11 +1,19 @@
 # DeepLab-ResNet-TensorFlow
 This is an (re-)implementation of [DeepLab-ResNet](http://liangchiehchen.com/projects/DeepLabv2_resnet.html) in TensorFlow for semantic image segmentation on the [PASCAL VOC dataset](http://host.robots.ox.ac.uk/pascal/VOC/).
 
+## Updates
+
+**29 Jan, 2017**:
+* Fixed the implementation of the batch normalisation layer: it now supports both the training and inference steps. If the flag `--is-training` is provided, the running means and variances will be updated; otherwise, they will be kept intact. The `.ckpt` files have been updated accordingly - to download please refer to the new link provided below.
+* Image summaries during the training process can now be seen using TensorBoard.
+* Fixed the evaluation procedure: the 'void' label (<code>255</code>) is now correctly ignored. As a result, the performance score on the validation set has increased to <code>80.1%</code>.
+
+
 ## Model Description
 
 The DeepLab-ResNet is built on a fully convolutional variant of [ResNet-101](https://github.com/KaimingHe/deep-residual-networks) with [atrous (dilated) convolutions](https://github.com/fyu/dilation), atrous spatial pyramid pooling, and multi-scale inputs (not implemented here).
 
-The model is trained on a mini-batch of images and corresponding ground truth masks with the softmax classifier on the top. During training, the masks are downsampled to match the size of the output from the network; during inference, to acquire the output of the same size as the input, bilinear upsampling is applied. The final segmentation mask is computed using argmax over the logits.
+The model is trained on a mini-batch of images and corresponding ground truth masks with the softmax classifier at the top. During training, the masks are downsampled to match the size of the output from the network; during inference, to acquire the output of the same size as the input, bilinear upsampling is applied. The final segmentation mask is computed using argmax over the logits.
 Optionally, a fully-connected probabilistic graphical model, namely, CRF, can be applied to refine the final predictions.
 On the test set of PASCAL VOC, the model achieves <code>79.7%</code> of mean intersection-over-union.
 
@@ -38,7 +46,7 @@ pip install -user -r requirements.txt
 ## Caffe to TensorFlow conversion
 
 To imitate the structure of the model, we have used `.caffemodel` files provided by the [authors](http://liangchiehchen.com/projects/DeepLabv2_resnet.html). The conversion has been performed using [Caffe to TensorFlow](https://github.com/ethereon/caffe-tensorflow) with an additional configuration for atrous convolution and batch normalisation (since the batch normalisation provided by Caffe-tensorflow only supports inference). 
-There is no need to perform the conversion yourself as you can download the already converted models - `deeplab_resnet.ckpt` (pre-trained) and `deeplab_resnet_init.ckpt` (the last layers are randomly initialised) - [here](https://drive.google.com/open?id=0B_rootXHuswsTF90M1NWQmFYelU).
+There is no need to perform the conversion yourself as you can download the already converted models - `deeplab_resnet.ckpt` (pre-trained) and `deeplab_resnet_init.ckpt` (the last layers are randomly initialised) - [here](https://drive.google.com/open?id=0B_rootXHuswsZ0E4Mjh1ZU5xZVU).
 
 Nevertheless, it is easy to perform the conversion manually, given that the appropriate `.caffemodel` file has been downloaded, and [Caffe to TensorFlow](https://github.com/ethereon/caffe-tensorflow) dependencies have been installed. The Caffe model definition is provided in `misc/deploy.prototxt`. 
 To extract weights from `.caffemodel`, run the following:
@@ -72,7 +80,7 @@ An additional script, `fine_tune.py`, demonstrates how to train only the last la
 
 ## Evaluation
 
-The single-scale model shows <code>80.1%</code> mIoU on the Pascal VOC 2012 validation dataset. No post-processing step with CRF is being used.
+The single-scale model shows <code>80.1%</code> mIoU on the Pascal VOC 2012 validation dataset. No post-processing step with CRF is applied.
 
 The following command provides the description of each of the evaluation settings:
 ```bash
@@ -93,11 +101,6 @@ This will run the forward pass and save the resulted mask with this colour map:
 
 At the moment, the post-processing step with CRF is not implemented. Besides that, multi-scale inputs are missing, as well. No weight regularisation is applied.
 
-## Updates
-
-**29 Jan, 2017**:
-* Fixed the implementation of the batch normalisation layer: it now supports both the training and inference steps. If the flag `--is-training` is provided, the running means and variances will be updated; otherwise, they will be kept intact;
-*  Image summaries during the training process can now be seen using TensorBoard.
     
 ## Other implementations
 * [DeepLab-LargeFOV in TensorFlow](https://github.com/DrSleep/tensorflow-deeplab-lfov)
