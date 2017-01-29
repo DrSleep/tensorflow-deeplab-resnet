@@ -35,7 +35,7 @@ def get_arguments():
                         help="Path to the RGB image file.")
     parser.add_argument("model_weights", type=str,
                         help="Path to the file with model weights.")
-    parser.add_argument("--save_dir", type=str, default=SAVE_DIR,
+    parser.add_argument("--save-dir", type=str, default=SAVE_DIR,
                         help="Where to save predicted mask.")
     return parser.parse_args()
 
@@ -66,7 +66,7 @@ def main():
     net = DeepLabResNetModel({'data': tf.expand_dims(img, dim=0)}, is_training=False)
 
     # Which variables to load.
-    restore_var = tf.all_variables()
+    restore_var = tf.global_variables()
 
     # Predictions.
     raw_output = net.layers['fc1_voc12']
@@ -79,7 +79,7 @@ def main():
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
-    init = tf.initialize_all_variables()
+    init = tf.global_variables_initializer()
     
     sess.run(init)
     

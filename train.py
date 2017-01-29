@@ -38,27 +38,29 @@ def get_arguments():
       A list of parsed arguments.
     """
     parser = argparse.ArgumentParser(description="DeepLab-ResNet Network")
-    parser.add_argument("--batch_size", type=int, default=BATCH_SIZE,
+    parser.add_argument("--batch-size", type=int, default=BATCH_SIZE,
                         help="Number of images sent to the network in one step.")
-    parser.add_argument("--data_dir", type=str, default=DATA_DIRECTORY,
+    parser.add_argument("--data-dir", type=str, default=DATA_DIRECTORY,
                         help="Path to the directory containing the PASCAL VOC dataset.")
-    parser.add_argument("--data_list", type=str, default=DATA_LIST_PATH,
+    parser.add_argument("--data-list", type=str, default=DATA_LIST_PATH,
                         help="Path to the file listing the images in the dataset.")
-    parser.add_argument("--input_size", type=str, default=INPUT_SIZE,
+    parser.add_argument("--input-size", type=str, default=INPUT_SIZE,
                         help="Comma-separated string with height and width of images.")
-    parser.add_argument("--learning_rate", type=float, default=LEARNING_RATE,
+    parser.add_argument("--is-training", action="store_true",
+                        help="Whether to updates the running means and variances during the training.")
+    parser.add_argument("--learning-rate", type=float, default=LEARNING_RATE,
                         help="Learning rate for training.")
-    parser.add_argument("--num_steps", type=int, default=NUM_STEPS,
+    parser.add_argument("--num-steps", type=int, default=NUM_STEPS,
                         help="Number of training steps.")
-    parser.add_argument("--random_scale", action="store_true",
+    parser.add_argument("--random-scale", action="store_true",
                         help="Whether to randomly scale the inputs during the training.")
-    parser.add_argument("--restore_from", type=str, default=RESTORE_FROM,
+    parser.add_argument("--restore-from", type=str, default=RESTORE_FROM,
                         help="Where restore model parameters from.")
-    parser.add_argument("--save_num_images", type=int, default=SAVE_NUM_IMAGES,
+    parser.add_argument("--save-num-images", type=int, default=SAVE_NUM_IMAGES,
                         help="How many images to save.")
-    parser.add_argument("--save_pred_every", type=int, default=SAVE_PRED_EVERY,
+    parser.add_argument("--save-pred-every", type=int, default=SAVE_PRED_EVERY,
                         help="Save summaries and checkpoint every often.")
-    parser.add_argument("--snapshot_dir", type=str, default=SNAPSHOT_DIR,
+    parser.add_argument("--snapshot-dir", type=str, default=SNAPSHOT_DIR,
                         help="Where to save snapshots of the model.")
     return parser.parse_args()
 
@@ -104,7 +106,7 @@ def main():
         image_batch, label_batch = reader.dequeue(args.batch_size)
     
     # Create network.
-    net = DeepLabResNetModel({'data': image_batch}, is_training=False)
+    net = DeepLabResNetModel({'data': image_batch}, is_training=args.is_training)
     # For a small batch size, it is better to keep 
     # the statistics of the BN layers (running means and variances)
     # frozen, and to not update the values provided by the pre-trained model. 
@@ -116,7 +118,7 @@ def main():
     raw_output = net.layers['fc1_voc12']
     # Which variables to load. Running means and variances are not trainable,
     # thus all_variables() should be restored.
-    restore_var = tf.all_variables()
+    restore_var = tf.global_variables()
     trainable = tf.trainable_variables()
     
     
@@ -151,7 +153,7 @@ def main():
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
-    init = tf.initialize_all_variables()
+    init = tf.global_variables_initializer()
     
     sess.run(init)
     
