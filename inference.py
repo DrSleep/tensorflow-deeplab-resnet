@@ -35,7 +35,7 @@ def get_arguments():
                         help="Path to the RGB image file.")
     parser.add_argument("model_weights", type=str,
                         help="Path to the file with model weights.")
-    parser.add_argument("--save_dir", type=str, default=SAVE_DIR,
+    parser.add_argument("--save-dir", type=str, default=SAVE_DIR,
                         help="Where to save predicted mask.")
     return parser.parse_args()
 
@@ -63,7 +63,10 @@ def main():
     img -= IMG_MEAN 
     
     # Create network.
-    net = DeepLabResNetModel({'data': tf.expand_dims(img, dim=0)})
+    net = DeepLabResNetModel({'data': tf.expand_dims(img, dim=0)}, is_training=False)
+
+    # Which variables to load.
+    restore_var = tf.global_variables()
 
     # Predictions.
     raw_output = net.layers['fc1_voc12']
@@ -71,26 +74,24 @@ def main():
     raw_output_up = tf.argmax(raw_output_up, dimension=3)
     pred = tf.expand_dims(raw_output_up, dim=3)
 
-    # Which variables to load.
-    trainable = tf.trainable_variables()
     
     # Set up TF session and initialize variables. 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
-    init = tf.initialize_all_variables()
+    init = tf.global_variables_initializer()
     
     sess.run(init)
     
     # Load weights.
-    saver = tf.train.Saver(var_list=trainable)
-    load(saver, sess, args.model_weights)
+    loader = tf.train.Saver(var_list=restore_var)
+    load(loader, sess, args.model_weights)
     
     # Perform inference.
-    preds = sess.run([pred])
+    preds = sess.run(pred)
     
-    msk = decode_labels(np.array(preds)[0, 0, :, :, 0])
-    im = Image.fromarray(msk)
+    msk = decode_labels(preds)
+    im = Image.fromarray(msk[0])
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
     im.save(args.save_dir + 'mask.png')

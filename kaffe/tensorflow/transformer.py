@@ -147,7 +147,7 @@ class TensorFlowMapper(NodeMapper):
 
     def map_batch_norm(self, node):
         scale_offset = len(node.data) == 4
-        kwargs = {} if scale_offset else {'scale_offset': False}
+        kwargs = {'is_training': True} if scale_offset else {'is_training': True, 'scale': False}
         return MaybeActivated(node, default=False)('batch_normalization', **kwargs)
 
     def map_eltwise(self, node):

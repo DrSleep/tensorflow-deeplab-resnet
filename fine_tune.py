@@ -1,8 +1,9 @@
 """Training script for the DeepLab-ResNet network on the PASCAL VOC dataset
    for semantic image segmentation.
 
-This script trains the model using augmented PASCAL VOC,
+This script fine-tunes the model using augmented PASCAL VOC,
 which contains approximately 10000 images for training and 1500 images for validation.
+Only the last 'fc1_voc12' layers are being trained.
 """
 
 from __future__ import print_function
@@ -29,7 +30,7 @@ NUM_STEPS = 20000
 RESTORE_FROM = './deeplab_resnet.ckpt'
 SAVE_NUM_IMAGES = 2
 SAVE_PRED_EVERY = 100
-SNAPSHOT_DIR = './snapshots/'
+SNAPSHOT_DIR = './snapshots_finetune/'
 
 def get_arguments():
     """Parse all the arguments provided from the CLI.
@@ -119,8 +120,7 @@ def main():
     # Which variables to load. Running means and variances are not trainable,
     # thus all_variables() should be restored.
     restore_var = tf.global_variables()
-    trainable = tf.trainable_variables()
-    
+    trainable = [v for v in tf.trainable_variables() if 'fc1_voc12' in v.name] # Fine-tune only the last layers.
     
     prediction = tf.reshape(raw_output, [-1, n_classes])
     label_proc = prepare_label(label_batch, tf.pack(raw_output.get_shape()[1:3]))
@@ -167,7 +167,7 @@ def main():
     
     # Start queue threads.
     threads = tf.train.start_queue_runners(coord=coord, sess=sess)
-
+        
     # Iterate over training steps.
     for step in range(args.num_steps):
         start_time = time.time()

@@ -14,23 +14,31 @@ label_colours = [(0,0,0)
                 # 11=diningtable, 12=dog, 13=horse, 14=motorbike, 15=person
                 ,(0,64,0),(128,64,0),(0,192,0),(128,192,0),(0,64,128)]
                 # 16=potted plant, 17=sheep, 18=sofa, 19=train, 20=tv/monitor
+# image mean
+IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
     
-def decode_labels(mask):
+def decode_labels(mask, num_images=1):
     """Decode batch of segmentation masks.
     
     Args:
-      label_batch: result of inference after taking argmax.
+      mask: result of inference after taking argmax.
+      num_images: number of images to decode from the batch.
     
     Returns:
-      An batch of RGB images of the same size
+      A batch with num_images RGB images of the same size as the input. 
     """
-    img = Image.new('RGB', (len(mask[0]), len(mask)))
-    pixels = img.load()
-    for j_, j in enumerate(mask):
-        for k_, k in enumerate(j):
-            if k < n_classes:
-                pixels[k_,j_] = label_colours[k]
-    return np.array(img)
+    n, h, w, c = mask.shape
+    assert(n >= num_images), 'Batch size %d should be greater or equal than number of images to save %d.' % (n, num_images)
+    outputs = np.zeros((num_images, h, w, 3), dtype=np.uint8)
+    for i in range(num_images):
+      img = Image.new('RGB', (len(mask[i, 0]), len(mask[i])))
+      pixels = img.load()
+      for j_, j in enumerate(mask[i, :, :, 0]):
+          for k_, k in enumerate(j):
+              if k < n_classes:
+                  pixels[k_,j_] = label_colours[k]
+      outputs[i] = np.array(img)
+    return outputs
 
 def prepare_label(input_batch, new_size):
     """Resize masks and perform one-hot encoding.
@@ -49,3 +57,20 @@ def prepare_label(input_batch, new_size):
         input_batch = tf.one_hot(input_batch, depth=n_classes)
     return input_batch
 
+def inv_preprocess(imgs, num_images):
+  """Inverse preprocessing of the batch of images.
+     Add the mean vector and convert from BGR to RGB.
+   
+  Args:
+    imgs: batch of input images.
+    num_images: number of images to apply the inverse transformations on.
+  
+  Returns:
+    The batch of the size num_images with the same spatial dimensions as the input.
+  """
+  n, h, w, c = imgs.shape
+  assert(n >= num_images), 'Batch size %d should be greater or equal than number of images to save %d.' % (n, num_images)
+  outputs = np.zeros((num_images, h, w, c), dtype=np.uint8)
+  for i in range(num_images):
+    outputs[i] = (imgs[i] + IMG_MEAN)[:, :, ::-1].astype(np.uint8)
+  return outputs

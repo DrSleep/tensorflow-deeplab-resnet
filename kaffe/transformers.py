@@ -279,9 +279,9 @@ class ParameterNamer(object):
                 if node.parameters.bias_term:
                     names += ('biases',)
             elif node.kind == NodeKind.BatchNorm:
-                names = ('mean', 'variance')
+                names = ('moving_mean', 'moving_variance')
                 if len(node.data) == 4:
-                    names += ('scale', 'offset')
+                    names += ('gamma', 'beta')
             else:
                 print_stderr('WARNING: Unhandled parameters: {}'.format(node.kind))
                 continue

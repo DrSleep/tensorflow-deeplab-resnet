@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+slim = tf.contrib.slim
 
 DEFAULT_PADDING = 'SAME'
 
@@ -31,7 +32,7 @@ def layer(op):
 
 class Network(object):
 
-    def __init__(self, inputs, trainable=True):
+    def __init__(self, inputs, trainable=True, is_training=False):
         # The input nodes for this network
         self.inputs = inputs
         # The current list of terminal nodes
@@ -44,9 +45,9 @@ class Network(object):
         self.use_dropout = tf.placeholder_with_default(tf.constant(1.0),
                                                        shape=[],
                                                        name='use_dropout')
-        self.setup()
+        self.setup(is_training)
 
-    def setup(self):
+    def setup(self, is_training):
         '''Construct the network. '''
         raise NotImplementedError('Must be implemented by the subclass.')
 
@@ -255,29 +256,17 @@ class Network(object):
             else:
                 raise ValueError('Rank 2 tensor input expected for softmax!')
         return tf.nn.softmax(input, name)
-
+        
     @layer
-    def batch_normalization(self, input, name, scale_offset=True, relu=False):
-        # NOTE: Currently, only inference is supported
+    def batch_normalization(self, input, name, is_training, activation_fn=None, scale=True):
         with tf.variable_scope(name) as scope:
-            shape = [input.get_shape()[-1]]
-            if scale_offset:
-                scale = self.make_var('scale', shape=shape)
-                offset = self.make_var('offset', shape=shape)
-            else:
-                scale, offset = (None, None)
-            output = tf.nn.batch_normalization(
+            output = slim.batch_norm(
                 input,
-                mean=self.make_var('mean', shape=shape),
-                variance=self.make_var('variance', shape=shape),
-                offset=offset,
+                activation_fn=activation_fn,
+                is_training=is_training,
+                updates_collections=None,
                 scale=scale,
-                # TODO: This is the default Caffe batch norm eps
-                # Get the actual eps from parameters
-                variance_epsilon=1e-5,
-                name=name)
-            if relu:
-                output = tf.nn.relu(output)
+                scope=scope)
             return output
 
     @layer
