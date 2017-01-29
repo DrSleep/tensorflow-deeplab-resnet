@@ -29,13 +29,13 @@ def get_arguments():
       A list of parsed arguments.
     """
     parser = argparse.ArgumentParser(description="DeepLabLFOV Network")
-    parser.add_argument("--data_dir", type=str, default=DATA_DIRECTORY,
+    parser.add_argument("--data-dir", type=str, default=DATA_DIRECTORY,
                         help="Path to the directory containing the PASCAL VOC dataset.")
-    parser.add_argument("--data_list", type=str, default=DATA_LIST_PATH,
+    parser.add_argument("--data-list", type=str, default=DATA_LIST_PATH,
                         help="Path to the file listing the images in the dataset.")
-    parser.add_argument("--num_steps", type=int, default=NUM_STEPS,
+    parser.add_argument("--num-steps", type=int, default=NUM_STEPS,
                         help="Number of images in the validation set.")
-    parser.add_argument("--restore_from", type=str, default=RESTORE_FROM,
+    parser.add_argument("--restore-from", type=str, default=RESTORE_FROM,
                         help="Where restore model parameters from.")
     return parser.parse_args()
 
