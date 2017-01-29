@@ -138,10 +138,10 @@ def main():
     labels_summary = tf.py_func(decode_labels, [label_batch, args.save_num_images], tf.uint8)
     preds_summary = tf.py_func(decode_labels, [pred, args.save_num_images], tf.uint8)
     
-    total_summary = tf.summary.image('images', 
+    total_summary = tf.image_summary('images', 
                                      tf.concat(2, [images_summary, labels_summary, preds_summary]), 
-                                     max_outputs=args.save_num_images) # Concatenate row-wise.
-    summary_writer = tf.summary.FileWriter(args.snapshot_dir)
+                                     max_images=args.save_num_images) # Concatenate row-wise.
+    summary_writer = tf.train.SummaryWriter(args.snapshot_dir)
    
     # Define loss and optimisation parameters.
     optimiser = tf.train.AdamOptimizer(learning_rate=args.learning_rate)
