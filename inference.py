@@ -11,9 +11,6 @@ import os
 import sys
 import time
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 from PIL import Image
 
 import tensorflow as tf
