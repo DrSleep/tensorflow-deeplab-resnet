@@ -25,7 +25,7 @@ def get_arguments():
     parser = argparse.ArgumentParser(description="NPY to CKPT converter.")
     parser.add_argument("npy_path", type=str,
                         help="Path to the .npy file, which contains the weights.")
-    parser.add_argument("--save_dir", type=str, default=SAVE_DIR,
+    parser.add_argument("--save-dir", type=str, default=SAVE_DIR,
                         help="Where to save the converted .ckpt file.")
     return parser.parse_args()
 
