@@ -49,7 +49,7 @@ def read_images_from_disk(input_queue, input_size, random_scale): # optional pre
         h, w = input_size
         if random_scale:
             scale = tf.random_uniform([1], minval=0.75, maxval=1.25, dtype=tf.float32, seed=None)
-            h_new = tf.to_int32(tf.mul(tf.to_float(tf.shape(img)[1]), scale))
+            h_new = tf.to_int32(tf.mul(tf.to_float(tf.shape(img)[0]), scale))
             w_new = tf.to_int32(tf.mul(tf.to_float(tf.shape(img)[1]), scale))
             new_shape = tf.squeeze(tf.pack([h_new, w_new]), squeeze_dims=[1])
 
