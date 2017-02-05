@@ -182,8 +182,8 @@ def main():
     grads_fc_b = grads[(len(conv_trainable) + len(fc_w_trainable)):]
 
     train_op_conv = opt_conv.apply_gradients(zip(grads_conv, conv_trainable))
-    train_op_fc_w = opt_conv.apply_gradients(zip(grads_fc_w, fc_w_trainable))
-    train_op_fc_b = opt_conv.apply_gradients(zip(grads_fc_b, fc_b_trainable))
+    train_op_fc_w = opt_fc_w.apply_gradients(zip(grads_fc_w, fc_w_trainable))
+    train_op_fc_b = opt_fc_b.apply_gradients(zip(grads_fc_b, fc_b_trainable))
 
     train_op = tf.group(train_op_conv, train_op_fc_w, train_op_fc_b)
     ## OPTIMISER ##
