@@ -172,7 +172,7 @@ def main():
     prediction = tf.gather(raw_prediction, indices)
     prediction100 = tf.gather(raw_prediction100, indices)
     prediction075 = tf.gather(raw_prediction075, indices075)
-    prediction05 = tf.gather(raw_prediction05, indices125)
+    prediction05 = tf.gather(raw_prediction05, indices05)
     
     
     ## PREPARE OUTPUTS AND LABELS ##
