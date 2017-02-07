@@ -20,7 +20,7 @@ from deeplab_resnet import DeepLabResNetModel, ImageReader, decode_labels, inv_p
 
 n_classes = 21
 
-BATCH_SIZE = 10
+BATCH_SIZE = 4
 DATA_DIRECTORY = '/home/VOCdevkit'
 DATA_LIST_PATH = './dataset/train.txt'
 INPUT_SIZE = '321,321'
@@ -112,9 +112,15 @@ def main():
             args.random_scale,
             coord)
         image_batch, label_batch = reader.dequeue(args.batch_size)
-    
+        image_batch075 = tf.image.resize_images(image_batch, [int(h * 0.75), int(w * 0.75)])
+        image_batch125 = tf.image.resize_images(image_batch, [int(h * 1.25), int(w * 1.25)])
     # Create network.
-    net = DeepLabResNetModel({'data': image_batch}, is_training=args.is_training)
+    with tf.variable_scope('', reuse=False):
+        net = DeepLabResNetModel({'data': image_batch}, is_training=args.is_training)
+    with tf.variable_scope('', reuse=True):
+        net075 = DeepLabResNetModel({'data': image_batch075}, is_training=args.is_training)
+    with tf.variable_scope('', reuse=True):
+        net125 = DeepLabResNetModel({'data': image_batch125}, is_training=args.is_training)
     # For a small batch size, it is better to keep 
     # the statistics of the BN layers (running means and variances)
     # frozen, and to not update the values provided by the pre-trained model. 
@@ -123,7 +129,12 @@ def main():
     # if they are presented in var_list of the optimiser definition.
 
     # Predictions.
-    raw_output = net.layers['fc1_voc12']
+    raw_output100 = net.layers['fc1_voc12']
+    raw_output075 = net075.layers['fc1_voc12']
+    raw_output125 = net125.layers['fc1_voc12']
+    raw_output = tf.reduce_max(tf.stack([raw_output100,
+                                         tf.image.resize_images(raw_output075, tf.shape(raw_output100)[1:3,]),
+                                         tf.image.resize_images(raw_output125, tf.shape(raw_output100)[1:3,])]), axis=0)
     # Which variables to load. Running means and variances are not trainable,
     # thus all_variables() should be restored.
     restore_var = tf.global_variables()
@@ -136,19 +147,46 @@ def main():
     assert(len(fc_trainable) == len(fc_w_trainable) + len(fc_b_trainable))
     
     
-    ## IGNORE 255 ##
+    ## PREPARE OUTPUTS AND LABELS ##
     raw_prediction = tf.reshape(raw_output, [-1, n_classes])
+    raw_prediction100 = tf.reshape(raw_output100, [-1, n_classes])
+    raw_prediction075 = tf.reshape(raw_output075, [-1, n_classes])
+    raw_prediction125 = tf.reshape(raw_output125, [-1, n_classes])
+    
     label_proc = prepare_label(label_batch, tf.pack(raw_output.get_shape()[1:3]), one_hot=False) # [batch_size, h, w]
+    label_proc075 = prepare_label(label_batch, tf.pack(raw_output075.get_shape()[1:3]), one_hot=False)
+    label_proc125 = prepare_label(label_batch, tf.pack(raw_output125.get_shape()[1:3]), one_hot=False)
+    
     raw_gt = tf.reshape(label_proc, [-1,])
+    raw_gt075 = tf.reshape(label_proc075, [-1,])
+    raw_gt125 = tf.reshape(label_proc125, [-1,])
+    
     indices = tf.squeeze(tf.where(tf.less_equal(raw_gt, 20)), 1)
+    indices075 = tf.squeeze(tf.where(tf.less_equal(raw_gt075, 20)), 1)
+    indices125 = tf.squeeze(tf.where(tf.less_equal(raw_gt125, 20)), 1)
+    
     gt = tf.cast(tf.gather(raw_gt, indices), tf.int32)
+    gt075 = tf.cast(tf.gather(raw_gt075, indices075), tf.int32)
+    gt125 = tf.cast(tf.gather(raw_gt125, indices125), tf.int32)
+    
     prediction = tf.gather(raw_prediction, indices)
+    prediction100 = tf.gather(raw_prediction100, indices)
+    prediction075 = tf.gather(raw_prediction075, indices075)
+    prediction125 = tf.gather(raw_prediction125, indices125)
+    
+    
+    ## PREPARE OUTPUTS AND LABELS ##
                                                   
-                                                  
-    # Pixel-wise softmax loss.
+    ## PIXEL-WISE SOFTMAX LOSSES ##
     loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=prediction, labels=gt)
+    loss100 = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=prediction100, labels=gt)
+    loss075 = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=prediction075, labels=gt075)
+    loss125 = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=prediction125, labels=gt125)
     l2_losses = [WEIGHT_DECAY * tf.nn.l2_loss(v) for v in tf.trainable_variables() if 'weights' in v.name]
-    reduced_loss = tf.reduce_mean(loss) + tf.add_n(l2_losses)
+    
+    reduced_loss = tf.reduce_mean(loss) + tf.reduce_mean(loss100) + tf.reduce_mean(loss075) + tf.reduce_mean(loss125) + tf.add_n(l2_losses)
+    
+    ## PIXEL-WISE SOFTMAX LOSSES ##
     
     # Processed predictions.
     raw_output_up = tf.image.resize_bilinear(raw_output, tf.shape(image_batch)[1:3,])
