@@ -64,7 +64,7 @@ def main():
     h, w, _ = img.get_shape().as_list()
     img = tf.expand_dims(img, dim=0)
     img075 = tf.image.resize_images(image, [int(h * 0.75), int(w * 0.75)])
-    img125 = tf.image.resize_images(image, [int(h * 0.75), int(w * 1.25)])
+    img125 = tf.image.resize_images(image, [int(h * 1.25), int(w * 1.25)])
     with tf.variable_scope('', reuse=False):
         net = DeepLabResNetModel({'data': img}, is_training=False)
     with tf.variable_scope('', reuse=True):
