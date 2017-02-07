@@ -64,13 +64,13 @@ def main():
     h, w, _ = img.get_shape().as_list()
     img = tf.expand_dims(img, dim=0)
     img075 = tf.image.resize_images(image, [int(h * 0.75), int(w * 0.75)])
-    img125 = tf.image.resize_images(image, [int(h * 1.25), int(w * 1.25)])
+    img05 = tf.image.resize_images(image, [int(h * 0.5), int(w * 0.5)])
     with tf.variable_scope('', reuse=False):
         net = DeepLabResNetModel({'data': img}, is_training=False)
     with tf.variable_scope('', reuse=True):
         net075 = DeepLabResNetModel({'data': img075}, is_training=False)
     with tf.variable_scope('', reuse=True):
-        net125 = DeepLabResNetModel({'data': img125}, is_training=False)
+        net05 = DeepLabResNetModel({'data': img05}, is_training=False)
 
     # Which variables to load.
     restore_var = tf.global_variables()
@@ -78,9 +78,9 @@ def main():
     # Predictions.
     raw_output100 = net.layers['fc1_voc12']
     raw_output075 = tf.image.resize_images(net075.layers['fc1_voc12'], tf.shape(raw_output100)[1:3,])
-    raw_output125 = tf.image.resize_images(net125.layers['fc1_voc12'], tf.shape(raw_output100)[1:3,])
+    raw_output05 = tf.image.resize_images(net05.layers['fc1_voc12'], tf.shape(raw_output100)[1:3,])
     
-    raw_output = tf.reduce_max(tf.stack([raw_output100, raw_output075, raw_output125]), axis=0)
+    raw_output = tf.reduce_max(tf.stack([raw_output100, raw_output075, raw_output05]), axis=0)
     raw_output_up = tf.image.resize_bilinear(raw_output, tf.shape(img)[0:2,])
     raw_output_up = tf.argmax(raw_output_up, dimension=3)
     pred = tf.expand_dims(raw_output_up, dim=3)
