@@ -11,3 +11,7 @@ install:
   - echo $TRAVIS_PYTHON_VERSION
   - pip install -U -r ./requirements.txt
   - pip install tensorflow
+  - wget https://www.dropbox.com/s/cd0drt6t9q1mwg0/deeplab_resnet.ckpt?dl=1 -O deeplab_resnet.ckpt
+  
+script:
+  - python inference.py ./images/summary.png ./deeplab_resnet.ckpt
