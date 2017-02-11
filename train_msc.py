@@ -74,6 +74,7 @@ def get_arguments():
                         help="Regularisation parameter for L2-loss.")
     return parser.parse_args()
 
+
 def save(saver, sess, logdir, step):
    '''Save weights.
    
@@ -83,14 +84,13 @@ def save(saver, sess, logdir, step):
      logdir: path to the snapshots directory.
      step: current training step.
    '''
-    model_name = 'model.ckpt'
-    checkpoint_path = os.path.join(logdir, model_name)
+   model_name = 'model.ckpt'
+   checkpoint_path = os.path.join(logdir, model_name)
     
-    if not os.path.exists(logdir):
-        os.makedirs(logdir)
-
-    saver.save(sess, checkpoint_path, global_step=step)
-    print('The checkpoint has been created.')
+   if not os.path.exists(logdir):
+      os.makedirs(logdir)
+   saver.save(sess, checkpoint_path, global_step=step)
+   print('The checkpoint has been created.')
 
 def load(saver, sess, ckpt_path):
     '''Load trained weights.
