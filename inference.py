@@ -16,7 +16,7 @@ from PIL import Image
 import tensorflow as tf
 import numpy as np
 
-from deeplab_resnet import DeepLabResNetModel, ImageReader, decode_labels, prepare_label
+from deeplab_resnet import DeepLabResNetModel, ImageReader, decode_labels, dense_crf, prepare_label
 
 SAVE_DIR = './output/'
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
@@ -52,9 +52,9 @@ def main():
     args = get_arguments()
     
     # Prepare image.
-    img = tf.image.decode_jpeg(tf.read_file(args.img_path), channels=3)
+    img_orig = tf.image.decode_jpeg(tf.read_file(args.img_path), channels=3)
     # Convert RGB to BGR.
-    img_r, img_g, img_b = tf.split(split_dim=2, num_split=3, value=img)
+    img_r, img_g, img_b = tf.split(split_dim=2, num_split=3, value=img_orig)
     img = tf.cast(tf.concat(2, [img_b, img_g, img_r]), dtype=tf.float32)
     # Extract mean.
     img -= IMG_MEAN 
@@ -68,6 +68,11 @@ def main():
     # Predictions.
     raw_output = net.layers['fc1_voc12']
     raw_output_up = tf.image.resize_bilinear(raw_output, tf.shape(img)[0:2,])
+    
+    # CRF.
+    raw_output_up = tf.nn.softmax(raw_output_up)
+    raw_output_up = tf.py_func(dense_crf, [raw_output_up, tf.expand_dims(img_orig, dim=0)], tf.float32)
+    
     raw_output_up = tf.argmax(raw_output_up, dimension=3)
     pred = tf.expand_dims(raw_output_up, dim=3)
 
