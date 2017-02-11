@@ -14,4 +14,4 @@ install:
   - wget https://www.dropbox.com/s/cd0drt6t9q1mwg0/deeplab_resnet.ckpt?dl=1 -O deeplab_resnet.ckpt
   
 script:
-  - python inference.py ./images/summary.png ./deeplab_resnet.ckpt
+  - python inference.py ./misc/2007_000129.jpg ./deeplab_resnet.ckpt
