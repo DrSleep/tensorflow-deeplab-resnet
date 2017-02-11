@@ -8,6 +8,11 @@ This is an (re-)implementation of [DeepLab-ResNet](http://liangchiehchen.com/pro
 * Image summaries during the training process can now be seen using TensorBoard.
 * Fixed the evaluation procedure: the 'void' label (<code>255</code>) is now correctly ignored. As a result, the performance score on the validation set has increased to <code>80.1%</code>.
 
+**11 Feb, 2017**:
+* The training script `train.py` has been re-written following the original optimisation setup: SGD with momentum, weight decay, learning rate with polynomial decay, different learning rates for different layers, ignoring the 'void' label (<code>255</code>).
+* The training script with multi-scale inputs `train_msc.py` has been added: the input is resized to <code>0.5</code> and <code>0.75</code> of the original resolution, and <code>4</code> losses are aggregated: loss on the original resolution, on the <code>0.75</code> resolution, on the <code>0.5</code> resolution, and loss on the all fused outputs.
+* Evaluation of a single-scale converted pre-trained model on the PASCAL VOC validation dataset (using ['SegmentationClassAug'](https://www.dropbox.com/s/oeu149j8qtbs1x0/SegmentationClassAug.zip?dl=0)) leads to <code>86.9%</code> mIoU. This is confirmed by [the official PASCAL VOC server](http://host.robots.ox.ac.uk/anonymous/FIQPRH.html). The score on the test dataset is [<code>75.8%</code>](http://host.robots.ox.ac.uk/anonymous/EPBIGU.html).
+
 ## Model Description
 
 The DeepLab-ResNet is built on a fully convolutional variant of [ResNet-101](https://github.com/KaimingHe/deep-residual-networks) with [atrous (dilated) convolutions](https://github.com/fyu/dilation), atrous spatial pyramid pooling, and multi-scale inputs (not implemented here).
@@ -74,12 +79,12 @@ To see the documentation on each of the training settings run the following:
 python train.py --help
 ```
 
-An additional script, `fine_tune.py`, demonstrates how to train only the last layers of the network. 
+An additional script, `fine_tune.py`, demonstrates how to train only the last layers of the network. The script `train_msc.py` with multi-scale inputs fully resembles the training setup of the original model. 
 
 
 ## Evaluation
 
-The single-scale model shows <code>80.1%</code> mIoU on the Pascal VOC 2012 validation dataset. No post-processing step with CRF is applied.
+The single-scale model shows <code>86.9%</code> mIoU on the Pascal VOC 2012 validation dataset (['SegmentationClassAug'](https://www.dropbox.com/s/oeu149j8qtbs1x0/SegmentationClassAug.zip?dl=0)). No post-processing step with CRF is applied.
 
 The following command provides the description of each of the evaluation settings:
 ```bash
@@ -98,7 +103,7 @@ This will run the forward pass and save the resulted mask with this colour map:
 
 ## Missing features
 
-At the moment, the post-processing step with CRF is not implemented. Besides that, multi-scale inputs are missing, as well. No weight regularisation is applied.
+The post-processing step with CRF is currently being implemented in [this branch](https://github.com/DrSleep/tensorflow-deeplab-resnet/tree/crf).
 
     
 ## Other implementations
