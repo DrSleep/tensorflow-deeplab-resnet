@@ -17,6 +17,8 @@ import numpy as np
 
 from deeplab_resnet import DeepLabResNetModel, ImageReader, prepare_label
 
+n_classes = 21
+
 DATA_DIRECTORY = '/home/VOCdevkit'
 DATA_LIST_PATH = './dataset/val.txt'
 NUM_STEPS = 1449 # Number of images in the validation set.
