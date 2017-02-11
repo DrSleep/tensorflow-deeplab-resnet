@@ -83,8 +83,8 @@ def main():
     # mIoU
     pred = tf.reshape(pred, [-1,])
     gt = tf.reshape(label_batch, [-1,])
-    weights = tf.cast(tf.less_equal(gt, 20), tf.int32) # Ignore void label '255'.
-    mIoU, update_op = tf.contrib.metrics.streaming_mean_iou(pred, gt, num_classes=21, weights=weights)
+    weights = tf.cast(tf.less_equal(gt, n_classes - 1), tf.int32) # Ignoring all labels greater or equalt than n_classes.
+    mIoU, update_op = tf.contrib.metrics.streaming_mean_iou(pred, gt, num_classes=n_classes, weights=weights)
     
     # Set up tf session and initialize variables. 
     config = tf.ConfigProto()
