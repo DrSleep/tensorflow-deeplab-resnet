@@ -44,6 +44,10 @@ def read_images_from_disk(input_queue, input_size, random_scale): # optional pre
     label_contents = tf.read_file(input_queue[1])
     
     img = tf.image.decode_jpeg(img_contents, channels=3)
+    img_r, img_g, img_b = tf.split(split_dim=2, num_split=3, value=img)
+    img = tf.cast(tf.concat(2, [img_b, img_g, img_r]), dtype=tf.float32)
+    # extract mean
+    img -= IMG_MEAN 
     label = tf.image.decode_png(label_contents, channels=1)
     if input_size is not None:
         h, w = input_size
@@ -58,10 +62,6 @@ def read_images_from_disk(input_queue, input_size, random_scale): # optional pre
             label = tf.squeeze(label, squeeze_dims=[0])
         img = tf.image.resize_image_with_crop_or_pad(img, h, w)
         label = tf.image.resize_image_with_crop_or_pad(label, h, w)
-    img_r, img_g, img_b = tf.split(split_dim=2, num_split=3, value=img)
-    img = tf.cast(tf.concat(2, [img_b, img_g, img_r]), dtype=tf.float32)
-    # extract mean
-    img -= IMG_MEAN 
     return img, label
 
 class ImageReader(object):
