@@ -69,9 +69,9 @@ python npy2ckpt.py /where/to/save/numpy/weights --save-dir=/where/to/save/ckpt/w
 
 To train the network, one can use the augmented PASCAL VOC 2012 dataset with <code>10582</code> images for training and <code>1449</code> images for validation.
 
-The training script allows to monitor the progress in the optimisation process using TensorBoard's image summary. Besides that, one can also exploit random scaling of the inputs during training as a means for data augmentation. For example, to train the model from scratch with random scale turned on, simply run:
+The training script allows to monitor the progress in the optimisation process using TensorBoard's image summary. Besides that, one can also exploit random scaling and mirroring of the inputs during training as a means for data augmentation. For example, to train the model from scratch with random scale and mirroring turned on, simply run:
 ```bash
-python train.py --random-scale
+python train.py --random-scale --random-mirror
 ```
 
 <img src="images/summary.png"></img>
