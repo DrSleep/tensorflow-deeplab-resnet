@@ -55,6 +55,8 @@ def get_arguments():
                         help="Number of training steps.")
     parser.add_argument("--random-scale", action="store_true",
                         help="Whether to randomly scale the inputs during the training.")
+    parser.add_argument("--random-mirror", action="store_true",
+                        help="Whether to randomly mirror the inputs during the training.")
     parser.add_argument("--restore-from", type=str, default=RESTORE_FROM,
                         help="Where restore model parameters from.")
     parser.add_argument("--save-num-images", type=int, default=SAVE_NUM_IMAGES,
@@ -103,6 +105,7 @@ def main():
             args.data_list,
             input_size,
             args.random_scale,
+            args.random_mirror,
             coord)
         image_batch, label_batch = reader.dequeue(args.batch_size)
     
@@ -143,7 +146,8 @@ def main():
     total_summary = tf.summary.image('images', 
                                      tf.concat(2, [images_summary, labels_summary, preds_summary]), 
                                      max_outputs=args.save_num_images) # Concatenate row-wise.
-    summary_writer = tf.summary.FileWriter(args.snapshot_dir)
+    summary_writer = tf.summary.FileWriter(args.snapshot_dir,
+                                           graph=tf.get_default_graph())
    
     # Define loss and optimisation parameters.
     optimiser = tf.train.AdamOptimizer(learning_rate=args.learning_rate)

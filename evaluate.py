@@ -66,6 +66,7 @@ def main():
             args.data_list,
             None, # No defined input size.
             False, # No random scale.
+            False, # No random mirror
             coord)
         image, label = reader.image, reader.label
     image_batch, label_batch = tf.expand_dims(image, dim=0), tf.expand_dims(label, dim=0) # Add one batch dimension.
