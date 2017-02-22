@@ -3,15 +3,16 @@ import os
 import numpy as np
 import tensorflow as tf
 
+IGNORE_LABEL = 255
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 
 def image_scaling(img, label):
     """
-    Randomly scales the images between 0.5 to 1.5 times the original size
+    Randomly scales the images between 0.5 to 1.5 times the original size.
 
     Args:
-      img: Training image to scale
-      label: Segmentation mask to scale
+      img: Training image to scale.
+      label: Segmentation mask to scale.
     """
     
     scale = tf.random_uniform([1], minval=0.5, maxval=1.5, dtype=tf.float32, seed=None)
@@ -24,33 +25,35 @@ def image_scaling(img, label):
    
     return img, label
 
-def image_mirroring(image, random_number):
+def image_mirroring(img, label):
     """
-    Randomly mirrors the images
+    Randomly mirrors the images.
 
     Args:
-      img: Training image to scale
-      random_number: A random number
+      img: Training image to mirror.
+      label: Segmentation mask to mirror.
     """
     
-    distort_left_right_random = random_number[0]
+    distort_left_right_random = tf.random_uniform([1], 0, 1.0, dtype=tf.float32)[0]
     mirror = tf.less(tf.pack([1.0, distort_left_right_random, 1.0]), 0.5)
-    image = tf.reverse(image, mirror)
-    return image
+    img = tf.reverse(img, mirror)
+    label = tf.reverse(label, mirror)
+    return img, label
 
-def random_crop_and_pad_image_and_labels(image, label, crop_h, crop_w, ignore_label):
+def random_crop_and_pad_image_and_labels(image, label, crop_h, crop_w, ignore_label=255):
     """
-    Randomly crop and pads the input images
+    Randomly crop and pads the input images.
 
     Args:
-      img: Training image to crop/ pad
-      label: Segmentation mask to crop/ pad
-      crop_h: Height of cropped segment
-      crop_w: Width of cropped segment
+      image: Training image to crop/ pad.
+      label: Segmentation mask to crop/ pad.
+      crop_h: Height of cropped segment.
+      crop_w: Width of cropped segment.
+      ignore_label: Label to ignore during the training.
     """
 
     label = tf.cast(label, dtype=tf.float32)
-    label = label - ignore_label # Needs to be subtracted and later added due to 0 padding
+    label = label - ignore_label # Needs to be subtracted and later added due to 0 padding.
     combined = tf.concat(2, [image, label]) 
     image_shape = tf.shape(image)
     combined_pad = tf.image.pad_to_bounding_box(combined, 0, 0, tf.maximum(crop_h, image_shape[0]), tf.maximum(crop_w, image_shape[1]))
@@ -63,7 +66,7 @@ def random_crop_and_pad_image_and_labels(image, label, crop_h, crop_w, ignore_la
     label_crop = label_crop + ignore_label
     label_crop = tf.cast(label_crop, dtype=tf.uint8)
     
-    # Set static shape so that tensorflow knows shape at compile time 
+    # Set static shape so that tensorflow knows shape at compile time. 
     img_crop.set_shape((crop_h, crop_w, 3))
     label_crop.set_shape((crop_h,crop_w, 1))
     return img_crop, label_crop  
@@ -112,7 +115,7 @@ def read_images_from_disk(input_queue, input_size, random_scale, random_mirror):
     img = tf.image.decode_jpeg(img_contents, channels=3)
     img_r, img_g, img_b = tf.split(split_dim=2, num_split=3, value=img)
     img = tf.cast(tf.concat(2, [img_b, img_g, img_r]), dtype=tf.float32)
-    # extract mean
+    # Extract mean.
     img -= IMG_MEAN
 
     label = tf.image.decode_png(label_contents, channels=1)
@@ -120,18 +123,16 @@ def read_images_from_disk(input_queue, input_size, random_scale, random_mirror):
     if input_size is not None:
         h, w = input_size
 
-        # Randomly scale the images and labels
+        # Randomly scale the images and labels.
         if random_scale:
             img, label = image_scaling(img, label)
 
-        # Randomly mirror the images and labels
+        # Randomly mirror the images and labels.
         if random_mirror:
-            random_number = tf.random_uniform([2], 0, 1.0, dtype=tf.float32)
-            img = image_mirroring(img, random_number)
-            label = image_mirroring(label, random_number)
+            img, label = image_mirroring(img, label)
 
-        # Randomly crops the images and labels
-        img, label = random_crop_and_pad_image_and_labels(img, label, h, w, 255)
+        # Randomly crops the images and labels.
+        img, label = random_crop_and_pad_image_and_labels(img, label, h, w, IGNORE_LABEL)
 
     return img, label
 
