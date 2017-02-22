@@ -14,6 +14,6 @@ install:
   
 script:
   - python inference.py ./misc/2007_000129.jpg ./deeplab_resnet.ckpt
-  - python train.py --batch-size 1 --data-dir ./ --data-list ./dataset/debug.txt --num-steps 1 --restore-from ./deeplab_resnet.ckpt --save-num-images 1
-  - python train_msc.py --batch-size 1 --data-dir ./ --data-list ./dataset/debug.txt --num-steps 1 --restore-from ./deeplab_resnet.ckpt --save-num-images 1
+  - python train.py --batch-size 1 --data-dir ./ --data-list ./dataset/debug.txt --num-steps 1 --random-mirror --random-scale --restore-from ./deeplab_resnet.ckpt --save-num-images 1
+  - python train_msc.py --batch-size 1 --data-dir ./ --data-list ./dataset/debug.txt --grad-update-every 1 --num-steps 1 --random-mirror --random-scale --restore-from ./deeplab_resnet.ckpt --save-num-images 1
   - python evaluate.py --data-dir ./ --data-list ./dataset/debug.txt --num-steps 1 --restore-from ./deeplab_resnet.ckpt
