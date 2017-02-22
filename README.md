@@ -110,7 +110,7 @@ This will run the forward pass and save the resulted mask with this colour map:
 
 ## Missing features
 
-The post-processing step with CRF is currently being implemented in [this branch](https://github.com/DrSleep/tensorflow-deeplab-resnet/tree/crf).
+The post-processing step with CRF is currently being implemented [here](https://github.com/DrSleep/tensorflow-deeplab-resnet/tree/crf).
 
     
 ## Other implementations
