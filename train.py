@@ -60,10 +60,10 @@ def get_arguments():
                         help="Number of training steps.")
     parser.add_argument("--power", type=float, default=POWER,
                         help="Decay parameter to compute the learning rate.")
-    parser.add_argument("--random-scale", action="store_true",
-                        help="Whether to randomly scale the inputs during the training.")
     parser.add_argument("--random-mirror", action="store_true",
                         help="Whether to randomly mirror the inputs during the training.")
+    parser.add_argument("--random-scale", action="store_true",
+                        help="Whether to randomly scale the inputs during the training.")
     parser.add_argument("--restore-from", type=str, default=RESTORE_FROM,
                         help="Where restore model parameters from.")
     parser.add_argument("--save-num-images", type=int, default=SAVE_NUM_IMAGES,
