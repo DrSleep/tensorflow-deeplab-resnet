@@ -16,6 +16,10 @@ This is an (re-)implementation of [DeepLab-ResNet](http://liangchiehchen.com/pro
 * The training script with multi-scale inputs `train_msc.py` has been added: the input is resized to <code>0.5</code> and <code>0.75</code> of the original resolution, and <code>4</code> losses are aggregated: loss on the original resolution, on the <code>0.75</code> resolution, on the <code>0.5</code> resolution, and loss on the all fused outputs.
 * Evaluation of a single-scale converted pre-trained model on the PASCAL VOC validation dataset (using ['SegmentationClassAug'](https://www.dropbox.com/s/oeu149j8qtbs1x0/SegmentationClassAug.zip?dl=0)) leads to <code>86.9%</code> mIoU. This is confirmed by [the official PASCAL VOC server](http://host.robots.ox.ac.uk/anonymous/FIQPRH.html). The score on the test dataset is [<code>75.8%</code>](http://host.robots.ox.ac.uk/anonymous/EPBIGU.html).
 
+**22 Feb, 2017**:
+* The training script with multi-scale inputs `train_msc.py` now supports gradients accumulation: the relevant parameter `--grad-update-every` effectively mimics the behaviour of `iter_size` of Caffe. This allows to use batches of bigger sizes with less GPU memory being consumed. (Thanks to @arslan-chaudhry for this contribution!)
+* The random mirror and random crop options have been added. (Again big thanks to @arslan-chaudhry !) 
+
 ## Model Description
 
 The DeepLab-ResNet is built on a fully convolutional variant of [ResNet-101](https://github.com/KaimingHe/deep-residual-networks) with [atrous (dilated) convolutions](https://github.com/fyu/dilation), atrous spatial pyramid pooling, and multi-scale inputs (not implemented here).
@@ -69,9 +73,9 @@ python npy2ckpt.py /where/to/save/numpy/weights --save-dir=/where/to/save/ckpt/w
 
 To train the network, one can use the augmented PASCAL VOC 2012 dataset with <code>10582</code> images for training and <code>1449</code> images for validation.
 
-The training script allows to monitor the progress in the optimisation process using TensorBoard's image summary. Besides that, one can also exploit random scaling of the inputs during training as a means for data augmentation. For example, to train the model from scratch with random scale turned on, simply run:
+The training script allows to monitor the progress in the optimisation process using TensorBoard's image summary. Besides that, one can also exploit random scaling and mirroring of the inputs during training as a means for data augmentation. For example, to train the model from scratch with random scale and mirroring turned on, simply run:
 ```bash
-python train.py --random-scale
+python train.py --random-mirror --random-scale
 ```
 
 <img src="images/summary.png"></img>
@@ -106,7 +110,7 @@ This will run the forward pass and save the resulted mask with this colour map:
 
 ## Missing features
 
-The post-processing step with CRF is currently being implemented in [this branch](https://github.com/DrSleep/tensorflow-deeplab-resnet/tree/crf).
+The post-processing step with CRF is currently being implemented [here](https://github.com/DrSleep/tensorflow-deeplab-resnet/tree/crf).
 
     
 ## Other implementations

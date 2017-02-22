@@ -20,16 +20,17 @@ from deeplab_resnet import DeepLabResNetModel, ImageReader, decode_labels, inv_p
 
 n_classes = 21
 
-BATCH_SIZE = 10
+BATCH_SIZE = 1
 DATA_DIRECTORY = '/home/VOCdevkit'
 DATA_LIST_PATH = './dataset/train.txt'
+GRAD_UPDATE_EVERY = 10
 INPUT_SIZE = '321,321'
 LEARNING_RATE = 2.5e-4
 MOMENTUM = 0.9
 NUM_STEPS = 20001
 POWER = 0.9
 RESTORE_FROM = './deeplab_resnet.ckpt'
-SAVE_NUM_IMAGES = 2
+SAVE_NUM_IMAGES = 1
 SAVE_PRED_EVERY = 1000
 SNAPSHOT_DIR = './snapshots/'
 WEIGHT_DECAY = 0.0005
@@ -48,10 +49,12 @@ def get_arguments():
                         help="Path to the directory containing the PASCAL VOC dataset.")
     parser.add_argument("--data-list", type=str, default=DATA_LIST_PATH,
                         help="Path to the file listing the images in the dataset.")
+    parser.add_argument("--grad-update-every", type=int, default=GRAD_UPDATE_EVERY,
+                        help="Number of steps after which gradient update is applied.")
     parser.add_argument("--input-size", type=str, default=INPUT_SIZE,
                         help="Comma-separated string with height and width of images.")
     parser.add_argument("--is-training", action="store_true",
-                        help="Whether to updates the running means and variances during the training.")
+                        help="Whether to update the running means and variances during the training.")
     parser.add_argument("--learning-rate", type=float, default=LEARNING_RATE,
                         help="Base learning rate for training with polynomial decay.")
     parser.add_argument("--momentum", type=float, default=MOMENTUM,
@@ -60,6 +63,8 @@ def get_arguments():
                         help="Number of training steps.")
     parser.add_argument("--power", type=float, default=POWER,
                         help="Decay parameter to compute the learning rate.")
+    parser.add_argument("--random-mirror", action="store_true",
+                        help="Whether to randomly mirror the inputs during the training.")
     parser.add_argument("--random-scale", action="store_true",
                         help="Whether to randomly scale the inputs during the training.")
     parser.add_argument("--restore-from", type=str, default=RESTORE_FROM,
@@ -73,7 +78,6 @@ def get_arguments():
     parser.add_argument("--weight-decay", type=float, default=WEIGHT_DECAY,
                         help="Regularisation parameter for L2-loss.")
     return parser.parse_args()
-
 
 def save(saver, sess, logdir, step):
    '''Save weights.
@@ -120,6 +124,7 @@ def main():
             args.data_list,
             input_size,
             args.random_scale,
+            args.random_mirror,
             coord)
         image_batch, label_batch = reader.dequeue(args.batch_size)
         image_batch075 = tf.image.resize_images(image_batch, [int(h * 0.75), int(w * 0.75)])
@@ -207,7 +212,8 @@ def main():
     total_summary = tf.summary.image('images', 
                                      tf.concat(2, [images_summary, labels_summary, preds_summary]), 
                                      max_outputs=args.save_num_images) # Concatenate row-wise.
-    summary_writer = tf.summary.FileWriter(args.snapshot_dir)
+    summary_writer = tf.summary.FileWriter(args.snapshot_dir,
+                                           graph=tf.get_default_graph())
    
     # Define loss and optimisation parameters.
     base_lr = tf.constant(args.learning_rate)
@@ -218,11 +224,25 @@ def main():
     opt_fc_w = tf.train.MomentumOptimizer(learning_rate * 10.0, args.momentum)
     opt_fc_b = tf.train.MomentumOptimizer(learning_rate * 20.0, args.momentum)
 
-    grads = tf.gradients(reduced_loss, conv_trainable + fc_w_trainable + fc_b_trainable)
-    grads_conv = grads[:len(conv_trainable)]
-    grads_fc_w = grads[len(conv_trainable) : (len(conv_trainable) + len(fc_w_trainable))]
-    grads_fc_b = grads[(len(conv_trainable) + len(fc_w_trainable)):]
+    # Define a variable to accumulate gradients.
+    accum_grads = [tf.Variable(tf.zeros_like(v.initialized_value()),
+                               trainable=False) for v in conv_trainable + fc_w_trainable + fc_b_trainable]
 
+    # Define an operation to clear the accumulated gradients for next batch.
+    zero_op = [v.assign(tf.zeros_like(v)) for v in accum_grads]
+
+    # Compute gradients.
+    grads = tf.gradients(reduced_loss, conv_trainable + fc_w_trainable + fc_b_trainable)
+   
+    # Accumulate and normalise the gradients.
+    accum_grads_op = [accum_grads[i].assign_add(grad / args.grad_update_every) for i, grad in
+                       enumerate(grads)]
+
+    grads_conv = accum_grads[:len(conv_trainable)]
+    grads_fc_w = accum_grads[len(conv_trainable) : (len(conv_trainable) + len(fc_w_trainable))]
+    grads_fc_b = accum_grads[(len(conv_trainable) + len(fc_w_trainable)):]
+
+    # Apply the gradients.
     train_op_conv = opt_conv.apply_gradients(zip(grads_conv, conv_trainable))
     train_op_fc_w = opt_fc_w.apply_gradients(zip(grads_fc_w, fc_w_trainable))
     train_op_fc_b = opt_fc_b.apply_gradients(zip(grads_fc_b, fc_b_trainable))
@@ -253,13 +273,27 @@ def main():
     for step in range(args.num_steps):
         start_time = time.time()
         feed_dict = { step_ph : step }
-        
+        loss_value = 0
+
+        # Clear the accumulated gradients.
+        sess.run(zero_op, feed_dict=feed_dict)
+       
+        # Accumulate gradients.
+        for i in range(args.grad_update_every):
+            _, l_val = sess.run([accum_grads_op, reduced_loss], feed_dict=feed_dict)
+            loss_value += l_val
+
+        # Normalise the loss.
+        loss_value /= args.grad_update_every
+
+        # Apply gradients.
         if step % args.save_pred_every == 0:
-            loss_value, images, labels, preds, summary, _ = sess.run([reduced_loss, image_batch, label_batch, pred, total_summary, train_op], feed_dict=feed_dict)
+            images, labels, summary, _ = sess.run([image_batch, label_batch, total_summary, train_op], feed_dict=feed_dict)
             summary_writer.add_summary(summary, step)
             save(saver, sess, args.snapshot_dir, step)
         else:
-            loss_value, _ = sess.run([reduced_loss, train_op], feed_dict=feed_dict)
+            sess.run(train_op, feed_dict=feed_dict)
+
         duration = time.time() - start_time
         print('step {:d} \t loss = {:.3f}, ({:.3f} sec/step)'.format(step, loss_value, duration))
     coord.request_stop()
