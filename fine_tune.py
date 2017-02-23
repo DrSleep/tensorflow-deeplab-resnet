@@ -27,6 +27,7 @@ DATA_LIST_PATH = './dataset/train.txt'
 INPUT_SIZE = '321,321'
 LEARNING_RATE = 1e-4
 NUM_STEPS = 20000
+RANDOM_SEED = 1234
 RESTORE_FROM = './deeplab_resnet.ckpt'
 SAVE_NUM_IMAGES = 2
 SAVE_PRED_EVERY = 100
@@ -57,6 +58,8 @@ def get_arguments():
                         help="Whether to randomly mirror the inputs during the training.")
     parser.add_argument("--random-scale", action="store_true",
                         help="Whether to randomly scale the inputs during the training.")
+    parser.add_argument("--random-seed", type=int, default=RANDOM_SEED,
+                        help="Random seed to have reproducible results.")
     parser.add_argument("--restore-from", type=str, default=RESTORE_FROM,
                         help="Where restore model parameters from.")
     parser.add_argument("--save-num-images", type=int, default=SAVE_NUM_IMAGES,
@@ -94,6 +97,8 @@ def main():
     
     h, w = map(int, args.input_size.split(','))
     input_size = (h, w)
+    
+    tf.set_random_seed(args.random_seed)
     
     # Create queue coordinator.
     coord = tf.train.Coordinator()
