@@ -41,8 +41,12 @@ def image_mirroring(img, label):
 
     distort_left_right_random = tf.random_uniform(
         [1], 0, 1.0, dtype=tf.float32)[0]
-    mirror = tf.cast(tf.less(tf.stack([1.0, distort_left_right_random, 1.0]),
-                             0.5), dtype=tf.int32)
+    mirror = tf.less(tf.stack([1.0, distort_left_right_random, 1.0]),
+                     0.5)
+    # tf.reverse() now takes indices of axes to be reversed.
+    # so we should convert boolean_mask into indices
+    mirror = tf.boolean_mask([0, 1, 2], mirror)
+
     img = tf.reverse(img, mirror)
     label = tf.reverse(label, mirror)
     return img, label
@@ -189,7 +193,8 @@ class ImageReader(object):
           num_elements: the batch size.
 
         Returns:
-          Two tensors of size (batch_size, h, w, {3, 1}) for images and masks.'''
+          Two tensors of size (batch_size, h, w, {3, 1}) for images and masks.
+        '''
         image_batch, label_batch = tf.train.batch([self.image, self.label],
                                                   num_elements)
         return image_batch, label_batch

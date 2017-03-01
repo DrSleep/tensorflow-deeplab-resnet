@@ -79,9 +79,9 @@ def main():
     h_orig, w_orig = tf.to_float(
         tf.shape(image_batch)[1]), tf.to_float(tf.shape(image_batch)[2])
     image_batch075 = tf.image.resize_images(image_batch, tf.stack(
-        [tf.to_int32(tf.mul(h_orig, 0.75)), tf.to_int32(tf.mul(w_orig, 0.75))]))
+        [tf.to_int32(tf.multiply(h_orig, 0.75)), tf.to_int32(tf.multiply(w_orig, 0.75))]))
     image_batch05 = tf.image.resize_images(image_batch, tf.stack(
-        [tf.to_int32(tf.mul(h_orig, 0.5)), tf.to_int32(tf.mul(w_orig, 0.5))]))
+        [tf.to_int32(tf.multiply(h_orig, 0.5)), tf.to_int32(tf.multiply(w_orig, 0.5))]))
 
     # Create network.
     with tf.variable_scope('', reuse=False):
