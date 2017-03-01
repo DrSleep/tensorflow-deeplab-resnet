@@ -176,9 +176,9 @@ def main():
     raw_prediction075 = tf.reshape(raw_output075, [-1, n_classes])
     raw_prediction05 = tf.reshape(raw_output05, [-1, n_classes])
 
-    label_proc = prepare_label(label_batch, tf.pack(raw_output.get_shape()[1:3]), one_hot=False)  # [batch_size, h, w]
-    label_proc075 = prepare_label(label_batch, tf.pack(raw_output075.get_shape()[1:3]), one_hot=False)
-    label_proc05 = prepare_label(label_batch, tf.pack(raw_output05.get_shape()[1:3]), one_hot=False)
+    label_proc = prepare_label(label_batch, tf.stack(raw_output.get_shape()[1:3]), one_hot=False)  # [batch_size, h, w]
+    label_proc075 = prepare_label(label_batch, tf.stack(raw_output075.get_shape()[1:3]), one_hot=False)
+    label_proc05 = prepare_label(label_batch, tf.stack(raw_output05.get_shape()[1:3]), one_hot=False)
 
     raw_gt = tf.reshape(label_proc, [-1, ])
     raw_gt075 = tf.reshape(label_proc075, [-1, ])
@@ -216,7 +216,7 @@ def main():
     preds_summary = tf.py_func(decode_labels, [pred, args.save_num_images], tf.uint8)
 
     total_summary = tf.summary.image('images',
-                                     tf.concat(2, [images_summary, labels_summary, preds_summary]),
+                                     tf.concat([images_summary, labels_summary, preds_summary], axis=2),
                                      max_outputs=args.save_num_images)  # Concatenate row-wise.
     summary_writer = tf.summary.FileWriter(args.snapshot_dir,
                                            graph=tf.get_default_graph())

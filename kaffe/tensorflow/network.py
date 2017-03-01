@@ -135,12 +135,12 @@ class Network(object):
             else:
                 # Split the input into groups and then convolve each of them
                 # independently
-                input_groups = tf.split(3, group, input)
-                kernel_groups = tf.split(3, group, kernel)
+                input_groups = tf.split(input, group, 3)
+                kernel_groups = tf.split(kernel, group, 3)
                 output_groups = [convolve(i, k) for i, k in zip(
                     input_groups, kernel_groups)]
                 # Concatenate the groups
-                output = tf.concat(3, output_groups)
+                output = tf.concat(output_groups, axis=3)
             # Add the biases
             if biased:
                 biases = self.make_var('biases', [c_o])
@@ -182,12 +182,12 @@ class Network(object):
             else:
                 # Split the input into groups and then convolve each of them
                 # independently
-                input_groups = tf.split(3, group, input)
-                kernel_groups = tf.split(3, group, kernel)
+                input_groups = tf.split(input, group, 3)
+                kernel_groups = tf.split(kernel, group, 3)
                 output_groups = [convolve(i, k) for i, k in zip(
                     input_groups, kernel_groups)]
                 # Concatenate the groups
-                output = tf.concat(3, output_groups)
+                output = tf.concat(output_groups, axis=3)
             # Add the biases
             if biased:
                 biases = self.make_var('biases', [c_o])
@@ -230,7 +230,7 @@ class Network(object):
 
     @layer
     def concat(self, inputs, axis, name):
-        return tf.concat(concat_dim=axis, values=inputs, name=name)
+        return tf.concat(values=inputs, axis=axis, name=name)
 
     @layer
     def add(self, inputs, name):

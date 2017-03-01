@@ -60,7 +60,7 @@ def main():
     img = tf.image.decode_jpeg(tf.read_file(args.img_path), channels=3)
     # Convert RGB to BGR.
     img_r, img_g, img_b = tf.split(value=img, num_or_size_splits=3, axis=2)
-    img = tf.cast(tf.concat([img_b, img_g, img_r], 2), dtype=tf.float32)
+    img = tf.cast(tf.concat([img_b, img_g, img_r], axis=2), dtype=tf.float32)
     # Extract mean.
     img -= IMG_MEAN
 

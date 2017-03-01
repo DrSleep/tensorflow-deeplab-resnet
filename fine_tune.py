@@ -138,7 +138,7 @@ def main():
 
     prediction = tf.reshape(raw_output, [-1, n_classes])
     label_proc = prepare_label(
-        label_batch, tf.pack(raw_output.get_shape()[1:3]))
+        label_batch, tf.stack(raw_output.get_shape()[1:3]))
     gt = tf.reshape(label_proc, [-1, n_classes])
 
     # Pixel-wise softmax loss.
@@ -161,7 +161,7 @@ def main():
 
     total_summary = tf.summary.image('images',
                                      tf.concat(
-                                         2, [images_summary, labels_summary, preds_summary]),
+                                         [images_summary, labels_summary, preds_summary], axis=2),
                                      max_outputs=args.save_num_images)  # Concatenate row-wise.
     summary_writer = tf.summary.FileWriter(args.snapshot_dir,
                                            graph=tf.get_default_graph())
