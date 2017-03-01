@@ -5,6 +5,7 @@ from .errors import KaffeError, print_stderr
 from .layers import LayerAdapter, LayerType, NodeKind, NodeDispatch
 from .shapes import TensorShape
 
+
 class Node(object):
 
     def __init__(self, name, kind, layer=None):
@@ -96,7 +97,8 @@ class Graph(object):
     def compute_output_shapes(self):
         sorted_nodes = self.topologically_sorted()
         for node in sorted_nodes:
-            node.output_shape = TensorShape(*NodeKind.compute_output_shape(node))
+            node.output_shape = TensorShape(
+                *NodeKind.compute_output_shape(node))
 
     def replaced(self, new_nodes):
         return Graph(nodes=new_nodes, name=self.name)
@@ -114,7 +116,8 @@ class Graph(object):
         return key in self.node_lut
 
     def __str__(self):
-        hdr = '{:<20} {:<30} {:>20} {:>20}'.format('Type', 'Name', 'Param', 'Output')
+        hdr = '{:<20} {:<30} {:>20} {:>20}'.format(
+            'Type', 'Name', 'Param', 'Output')
         s = [hdr, '-' * 94]
         for node in self.topologically_sorted():
             # If the node has learned parameters, display the first one's shape.
@@ -222,7 +225,8 @@ class GraphBuilder(object):
         # single top will often use the same name (although this is not required).
         #
         # The current implementation only supports single-output nodes (note that a node can still
-        # have multiple children, since multiple child nodes can refer to the single top's name).
+        # have multiple children, since multiple child nodes can refer to the
+        # single top's name).
         node_outputs = {}
         for layer in layers:
             node = graph.get_node(layer.name)
@@ -232,11 +236,12 @@ class GraphBuilder(object):
                 if (parent_node is None) or (parent_node == node):
                     parent_node = graph.get_node(input_name)
                 node.add_parent(parent_node)
-            if len(layer.top)>1:
+            if len(layer.top) > 1:
                 raise KaffeError('Multiple top nodes are not supported.')
             for output_name in layer.top:
                 if output_name == layer.name:
-                    # Output is named the same as the node. No further action required.
+                    # Output is named the same as the node. No further action
+                    # required.
                     continue
                 # There are two possibilities here:
                 #
@@ -249,7 +254,8 @@ class GraphBuilder(object):
                 # Since we are working in the single-output regime, we will can rename it to
                 # match the layer name.
                 #
-                # For both cases, future references to this top re-routes to this node.
+                # For both cases, future references to this top re-routes to
+                # this node.
                 node_outputs[output_name] = node
 
         graph.compute_output_shapes()

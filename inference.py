@@ -19,7 +19,10 @@ import numpy as np
 from deeplab_resnet import DeepLabResNetModel, ImageReader, decode_labels, prepare_label
 
 SAVE_DIR = './output/'
-IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
+IMG_MEAN = np.array((104.00698793,
+                     116.66876762,
+                     122.67891434), dtype=np.float32)
+
 
 def get_arguments():
     """Parse all the arguments provided from the CLI.
@@ -36,6 +39,7 @@ def get_arguments():
                         help="Where to save predicted mask.")
     return parser.parse_args()
 
+
 def load(saver, sess, ckpt_path):
     '''Load trained weights.
 
@@ -46,6 +50,7 @@ def load(saver, sess, ckpt_path):
     '''
     saver.restore(sess, ckpt_path)
     print("Restored model parameters from {}".format(ckpt_path))
+
 
 def main():
     """Create the model and start the evaluation process."""
@@ -67,10 +72,9 @@ def main():
 
     # Predictions.
     raw_output = net.layers['fc1_voc12']
-    raw_output_up = tf.image.resize_bilinear(raw_output, tf.shape(img)[0:2,])
+    raw_output_up = tf.image.resize_bilinear(raw_output, tf.shape(img)[0:2, ])
     raw_output_up = tf.argmax(raw_output_up, dimension=3)
     pred = tf.expand_dims(raw_output_up, dim=3)
-
 
     # Set up TF session and initialize variables.
     config = tf.ConfigProto()

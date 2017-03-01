@@ -55,6 +55,7 @@ LAYER_TYPES = LAYER_DESCRIPTORS.keys()
 
 LayerType = type('LayerType', (), {t: t for t in LAYER_TYPES})
 
+
 class NodeKind(LayerType):
 
     @staticmethod

@@ -59,7 +59,8 @@ class DataInjector(object):
                 c_i = blob.channels
                 h = blob.height
                 w = blob.width
-            data = np.array(blob.data, dtype=np.float32).reshape(c_o, c_i, h, w)
+            data = np.array(blob.data, dtype=np.float32).reshape(
+                c_o, c_i, h, w)
             transformed.append(data)
         return transformed
 
@@ -85,7 +86,8 @@ class DataInjector(object):
                 node = graph.get_node(layer_name)
                 node.data = self.adjust_parameters(node, data)
             else:
-                print_stderr('Ignoring parameters for non-existent layer: %s' % layer_name)
+                print_stderr(
+                    'Ignoring parameters for non-existent layer: %s' % layer_name)
         return graph
 
 
@@ -112,7 +114,8 @@ class DataReshaper(object):
         try:
             return self.mapping[node_kind]
         except KeyError:
-            raise KaffeError('Ordering not found for node kind: {}'.format(node_kind))
+            raise KaffeError(
+                'Ordering not found for node kind: {}'.format(node_kind))
 
     def __call__(self, graph):
         for node in graph.nodes:
@@ -121,7 +124,8 @@ class DataReshaper(object):
             if node.kind not in self.reshaped_node_types:
                 # Check for 2+ dimensional data
                 if any(len(tensor.shape) > 1 for tensor in node.data):
-                    print_stderr('Warning: parmaters not reshaped for node: {}'.format(node))
+                    print_stderr(
+                        'Warning: parmaters not reshaped for node: {}'.format(node))
                 continue
             transpose_order = self.map(node.kind)
             weights = node.data[0]
@@ -218,7 +222,7 @@ class BatchNormScaleBiasFuser(SubNodeFuser):
 
     def is_eligible_pair(self, parent, child):
         return (parent.kind == NodeKind.BatchNorm and child.kind == NodeKind.Scale and
-                child.parameters.axis == 1 and child.parameters.bias_term == True)
+                child.parameters.axis == 1 and child.parameters.bias_term is True)
 
     def merge(self, parent, child):
         parent.scale_bias_node = child
@@ -283,7 +287,8 @@ class ParameterNamer(object):
                 if len(node.data) == 4:
                     names += ('gamma', 'beta')
             else:
-                print_stderr('WARNING: Unhandled parameters: {}'.format(node.kind))
+                print_stderr(
+                    'WARNING: Unhandled parameters: {}'.format(node.kind))
                 continue
             assert len(names) == len(node.data)
             node.data = dict(zip(names, node.data))
