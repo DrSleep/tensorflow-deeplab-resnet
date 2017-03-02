@@ -123,19 +123,24 @@ class Network(object):
         assert c_i % group == 0
         assert c_o % group == 0
         # Convolution for a given input and kernel
-        convolve = lambda i, k: tf.nn.conv2d(i, k, [1, s_h, s_w, 1], padding=padding)
+        convolve = lambda i, k: tf.nn.conv2d(
+            i, k, [1, s_h, s_w, 1], padding=padding)
         with tf.variable_scope(name) as scope:
-            kernel = self.make_var('weights', shape=[k_h, k_w, c_i / group, c_o])
+            kernel = self.make_var(
+                'weights', shape=[k_h, k_w, c_i / group, c_o])
             if group == 1:
-                # This is the common-case. Convolve the input without any further complications.
+                # This is the common-case. Convolve the input without any
+                # further complications.
                 output = convolve(input, kernel)
             else:
-                # Split the input into groups and then convolve each of them independently
-                input_groups = tf.split(3, group, input)
-                kernel_groups = tf.split(3, group, kernel)
-                output_groups = [convolve(i, k) for i, k in zip(input_groups, kernel_groups)]
+                # Split the input into groups and then convolve each of them
+                # independently
+                input_groups = tf.split(input, group, 3)
+                kernel_groups = tf.split(kernel, group, 3)
+                output_groups = [convolve(i, k) for i, k in zip(
+                    input_groups, kernel_groups)]
                 # Concatenate the groups
-                output = tf.concat(3, output_groups)
+                output = tf.concat(output_groups, axis=3)
             # Add the biases
             if biased:
                 biases = self.make_var('biases', [c_o])
@@ -165,19 +170,24 @@ class Network(object):
         assert c_i % group == 0
         assert c_o % group == 0
         # Convolution for a given input and kernel
-        convolve = lambda i, k: tf.nn.atrous_conv2d(i, k, dilation, padding=padding)
+        convolve = lambda i, k: tf.nn.atrous_conv2d(
+            i, k, dilation, padding=padding)
         with tf.variable_scope(name) as scope:
-            kernel = self.make_var('weights', shape=[k_h, k_w, c_i / group, c_o])
+            kernel = self.make_var(
+                'weights', shape=[k_h, k_w, c_i / group, c_o])
             if group == 1:
-                # This is the common-case. Convolve the input without any further complications.
+                # This is the common-case. Convolve the input without any
+                # further complications.
                 output = convolve(input, kernel)
             else:
-                # Split the input into groups and then convolve each of them independently
-                input_groups = tf.split(3, group, input)
-                kernel_groups = tf.split(3, group, kernel)
-                output_groups = [convolve(i, k) for i, k in zip(input_groups, kernel_groups)]
+                # Split the input into groups and then convolve each of them
+                # independently
+                input_groups = tf.split(input, group, 3)
+                kernel_groups = tf.split(kernel, group, 3)
+                output_groups = [convolve(i, k) for i, k in zip(
+                    input_groups, kernel_groups)]
                 # Concatenate the groups
-                output = tf.concat(3, output_groups)
+                output = tf.concat(output_groups, axis=3)
             # Add the biases
             if biased:
                 biases = self.make_var('biases', [c_o])
@@ -186,7 +196,7 @@ class Network(object):
                 # ReLU non-linearity
                 output = tf.nn.relu(output, name=scope.name)
             return output
-        
+
     @layer
     def relu(self, input, name):
         return tf.nn.relu(input, name=name)
@@ -220,7 +230,7 @@ class Network(object):
 
     @layer
     def concat(self, inputs, axis, name):
-        return tf.concat(concat_dim=axis, values=inputs, name=name)
+        return tf.concat(values=inputs, axis=axis, name=name)
 
     @layer
     def add(self, inputs, name):
@@ -256,7 +266,7 @@ class Network(object):
             else:
                 raise ValueError('Rank 2 tensor input expected for softmax!')
         return tf.nn.softmax(input, name)
-        
+
     @layer
     def batch_normalization(self, input, name, is_training, activation_fn=None, scale=True):
         with tf.variable_scope(name) as scope:

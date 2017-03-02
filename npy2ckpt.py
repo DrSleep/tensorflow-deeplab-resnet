@@ -16,9 +16,10 @@ from deeplab_resnet import DeepLabResNetModel
 
 SAVE_DIR = './'
 
+
 def get_arguments():
     """Parse all the arguments provided from the CLI.
-    
+
     Returns:
       A list of parsed arguments.
     """
@@ -29,10 +30,11 @@ def get_arguments():
                         help="Where to save the converted .ckpt file.")
     return parser.parse_args()
 
+
 def save(saver, sess, logdir):
     model_name = 'model.ckpt'
     checkpoint_path = os.path.join(logdir, model_name)
-    
+
     if not os.path.exists(logdir):
         os.makedirs(logdir)
 
@@ -43,27 +45,28 @@ def save(saver, sess, logdir):
 def main():
     """Create the model and start the training."""
     args = get_arguments()
-    
+
     # Default image.
-    image_batch = tf.constant(0, tf.float32, shape=[1, 321, 321, 3]) 
+    image_batch = tf.constant(0, tf.float32, shape=[1, 321, 321, 3])
     # Create network.
     net = DeepLabResNetModel({'data': image_batch})
     var_list = tf.global_variables()
-          
-    # Set up tf session and initialize variables. 
+
+    # Set up tf session and initialize variables.
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
-    
+
     with tf.Session(config=config) as sess:
-          init = tf.initialize_all_variables()
-          sess.run(init)
-          
-          # Loading .npy weights.
-          net.load(args.npy_path, sess)
-          
-          # Saver for converting the loaded weights into .ckpt.
-          saver = tf.train.Saver(var_list=var_list, write_version=1)
-          save(saver, sess, args.save_dir)
+        init = tf.initialize_all_variables()
+        sess.run(init)
+
+        # Loading .npy weights.
+        net.load(args.npy_path, sess)
+
+        # Saver for converting the loaded weights into .ckpt.
+        saver = tf.train.Saver(var_list=var_list, write_version=1)
+        save(saver, sess, args.save_dir)
+
 
 if __name__ == '__main__':
     main()

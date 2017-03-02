@@ -118,9 +118,9 @@ class TensorFlowMapper(NodeMapper):
                               kernel_params.stride_h, kernel_params.stride_w, **padding)
 
     def map_inner_product(self, node):
-        #TODO: Axis
+        # TODO: Axis
         assert node.parameters.axis == 1
-        #TODO: Unbiased
+        # TODO: Unbiased
         assert node.parameters.bias_term == True
         return MaybeActivated(node)('fc', node.parameters.num_output)
 
