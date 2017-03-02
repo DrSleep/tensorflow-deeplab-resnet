@@ -9,9 +9,9 @@ virtualenv:
 install:
   - echo $TRAVIS_PYTHON_VERSION
   - pip install -U -r ./requirements.txt
-  - pip install -U tensorflow==1.0.0
+  - pip install -U https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.0.0-cp27-none-linux_x86_64.whl
   - wget https://www.dropbox.com/s/cd0drt6t9q1mwg0/deeplab_resnet.ckpt?dl=1 -O deeplab_resnet.ckpt
-  
+
 script:
   - python inference.py ./misc/2007_000129.jpg ./deeplab_resnet.ckpt
   - python train.py --batch-size 1 --data-dir ./ --data-list ./dataset/debug.txt --num-steps 1 --random-mirror --random-scale --restore-from ./deeplab_resnet.ckpt --save-num-images 1
