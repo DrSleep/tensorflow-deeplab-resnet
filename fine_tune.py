@@ -131,11 +131,11 @@ def main():
     trainable = [v for v in tf.trainable_variables() if 'fc1_voc12' in v.name] # Fine-tune only the last layers.
     
     prediction = tf.reshape(raw_output, [-1, n_classes])
-    label_proc = prepare_label(label_batch, tf.pack(raw_output.get_shape()[1:3]))
+    label_proc = prepare_label(label_batch, tf.stack(raw_output.get_shape()[1:3]))
     gt = tf.reshape(label_proc, [-1, n_classes])
     
     # Pixel-wise softmax loss.
-    loss = tf.nn.softmax_cross_entropy_with_logits(prediction, gt)
+    loss = tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=gt)
     reduced_loss = tf.reduce_mean(loss)
     
     # Processed predictions.
@@ -149,7 +149,7 @@ def main():
     preds_summary = tf.py_func(decode_labels, [pred, args.save_num_images], tf.uint8)
     
     total_summary = tf.summary.image('images', 
-                                     tf.concat(2, [images_summary, labels_summary, preds_summary]), 
+                                     tf.concat(axis=2, values=[images_summary, labels_summary, preds_summary]), 
                                      max_outputs=args.save_num_images) # Concatenate row-wise.
     summary_writer = tf.summary.FileWriter(args.snapshot_dir,
                                            graph=tf.get_default_graph())
