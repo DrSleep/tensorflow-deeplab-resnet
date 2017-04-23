@@ -7,13 +7,14 @@ from kaffe.tensorflow import Network
 import tensorflow as tf
 
 class DeepLabResNetModel(Network):
-    def setup(self, is_training):
+    def setup(self, is_training, num_classes):
         '''Network definition.
         
         Args:
           is_training: whether to update the running mean and variance of the batch normalisation layer.
                        If the batch size is small, it is better to keep the running mean and variance of 
                        the-pretrained model frozen.
+          num_classes: number of classes to predict (including background).
         '''
         (self.feed('data')
              .conv(7, 7, 64, 2, 2, biased=False, relu=False, name='conv1')
@@ -398,16 +399,16 @@ class DeepLabResNetModel(Network):
                    'bn5c_branch2c')
              .add(name='res5c')
              .relu(name='res5c_relu')
-             .atrous_conv(3, 3, 21, 6, padding='SAME', relu=False, name='fc1_voc12_c0'))
+             .atrous_conv(3, 3, num_classes, 6, padding='SAME', relu=False, name='fc1_voc12_c0'))
 
         (self.feed('res5c_relu')
-             .atrous_conv(3, 3, 21, 12, padding='SAME', relu=False, name='fc1_voc12_c1'))
+             .atrous_conv(3, 3, num_classes, 12, padding='SAME', relu=False, name='fc1_voc12_c1'))
 
         (self.feed('res5c_relu')
-             .atrous_conv(3, 3, 21, 18, padding='SAME', relu=False, name='fc1_voc12_c2'))
+             .atrous_conv(3, 3, num_classes, 18, padding='SAME', relu=False, name='fc1_voc12_c2'))
 
         (self.feed('res5c_relu')
-             .atrous_conv(3, 3, 21, 24, padding='SAME', relu=False, name='fc1_voc12_c3'))
+             .atrous_conv(3, 3, num_classes, 24, padding='SAME', relu=False, name='fc1_voc12_c3'))
 
         (self.feed('fc1_voc12_c0', 
                    'fc1_voc12_c1', 

@@ -17,10 +17,12 @@ import numpy as np
 
 from deeplab_resnet import DeepLabResNetModel, ImageReader, prepare_label
 
-n_classes = 21
+IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 
 DATA_DIRECTORY = '/home/VOCdevkit'
 DATA_LIST_PATH = './dataset/val.txt'
+IGNORE_LABEL = 255
+NUM_CLASSES = 21
 NUM_STEPS = 1449 # Number of images in the validation set.
 RESTORE_FROM = './deeplab_resnet.ckpt'
 
@@ -35,6 +37,10 @@ def get_arguments():
                         help="Path to the directory containing the PASCAL VOC dataset.")
     parser.add_argument("--data-list", type=str, default=DATA_LIST_PATH,
                         help="Path to the file listing the images in the dataset.")
+    parser.add_argument("--ignore-label", type=int, default=IGNORE_LABEL,
+                        help="The index of the label to ignore during the training.")
+    parser.add_argument("--num-classes", type=int, default=NUM_CLASSES,
+                        help="Number of classes to predict (including background).")
     parser.add_argument("--num-steps", type=int, default=NUM_STEPS,
                         help="Number of images in the validation set.")
     parser.add_argument("--restore-from", type=str, default=RESTORE_FROM,
@@ -67,6 +73,8 @@ def main():
             None, # No defined input size.
             False, # No random scale.
             False, # No random mirror.
+            args.ignore_label,
+            IMG_MEAN,
             coord)
         image, label = reader.image, reader.label
 
@@ -77,11 +85,11 @@ def main():
     
     # Create network.
     with tf.variable_scope('', reuse=False):
-        net = DeepLabResNetModel({'data': image_batch}, is_training=False)
+        net = DeepLabResNetModel({'data': image_batch}, is_training=False, num_classes=args.num_classes)
     with tf.variable_scope('', reuse=True):
-        net075 = DeepLabResNetModel({'data': image_batch075}, is_training=False)
+        net075 = DeepLabResNetModel({'data': image_batch075}, is_training=False, num_classes=args.num_classes)
     with tf.variable_scope('', reuse=True):
-        net05 = DeepLabResNetModel({'data': image_batch05}, is_training=False)
+        net05 = DeepLabResNetModel({'data': image_batch05}, is_training=False, num_classes=args.num_classes)
 
     # Which variables to load.
     restore_var = tf.global_variables()
@@ -99,8 +107,8 @@ def main():
     # mIoU
     pred = tf.reshape(pred, [-1,])
     gt = tf.reshape(label_batch, [-1,])
-    weights = tf.cast(tf.less_equal(gt, n_classes - 1), tf.int32) # Ignoring all labels greater than or equal to n_classes.
-    mIoU, update_op = tf.contrib.metrics.streaming_mean_iou(pred, gt, num_classes=n_classes, weights=weights)
+    weights = tf.cast(tf.less_equal(gt, args.num_classes - 1), tf.int32) # Ignoring all labels greater than or equal to n_classes.
+    mIoU, update_op = tf.contrib.metrics.streaming_mean_iou(pred, gt, num_classes=args.num_classes, weights=weights)
     
     # Set up tf session and initialize variables. 
     config = tf.ConfigProto()

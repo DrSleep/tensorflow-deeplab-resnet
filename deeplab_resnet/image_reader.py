@@ -3,9 +3,6 @@ import os
 import numpy as np
 import tensorflow as tf
 
-IGNORE_LABEL = 255
-IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
-
 def image_scaling(img, label):
     """
     Randomly scales the images between 0.5 to 1.5 times the original size.
@@ -94,7 +91,7 @@ def read_labeled_image_list(data_dir, data_list):
         masks.append(data_dir + mask)
     return images, masks
 
-def read_images_from_disk(input_queue, input_size, random_scale, random_mirror): # optional pre-processing arguments
+def read_images_from_disk(input_queue, input_size, random_scale, random_mirror, ignore_label, img_mean): # optional pre-processing arguments
     """Read one image and its corresponding mask with optional pre-processing.
     
     Args:
@@ -105,6 +102,8 @@ def read_images_from_disk(input_queue, input_size, random_scale, random_mirror):
                     to random crop.
       random_mirror: whether to randomly mirror the images prior
                     to random crop.
+      ignore_label: index of label to ignore during the training.
+      img_mean: vector of mean colour values.
       
     Returns:
       Two tensors: the decoded image and its mask.
@@ -117,7 +116,7 @@ def read_images_from_disk(input_queue, input_size, random_scale, random_mirror):
     img_r, img_g, img_b = tf.split(axis=2, num_or_size_splits=3, value=img)
     img = tf.cast(tf.concat(axis=2, values=[img_b, img_g, img_r]), dtype=tf.float32)
     # Extract mean.
-    img -= IMG_MEAN
+    img -= img_mean
 
     label = tf.image.decode_png(label_contents, channels=1)
 
@@ -133,7 +132,7 @@ def read_images_from_disk(input_queue, input_size, random_scale, random_mirror):
             img, label = image_mirroring(img, label)
 
         # Randomly crops the images and labels.
-        img, label = random_crop_and_pad_image_and_labels(img, label, h, w, IGNORE_LABEL)
+        img, label = random_crop_and_pad_image_and_labels(img, label, h, w, ignore_label)
 
     return img, label
 
@@ -142,8 +141,8 @@ class ImageReader(object):
        masks from the disk, and enqueues them into a TensorFlow queue.
     '''
 
-    def __init__(self, data_dir, data_list, input_size, random_scale,
-                 random_mirror, coord):
+    def __init__(self, data_dir, data_list, input_size, 
+                 random_scale, random_mirror, ignore_label, img_mean, coord):
         '''Initialise an ImageReader.
         
         Args:
@@ -152,6 +151,8 @@ class ImageReader(object):
           input_size: a tuple with (height, width) values, to which all the images will be resized.
           random_scale: whether to randomly scale the images prior to random crop.
           random_mirror: whether to randomly mirror the images prior to random crop.
+          ignore_label: index of label to ignore during the training.
+          img_mean: vector of mean colour values.
           coord: TensorFlow queue coordinator.
         '''
         self.data_dir = data_dir
@@ -164,7 +165,7 @@ class ImageReader(object):
         self.labels = tf.convert_to_tensor(self.label_list, dtype=tf.string)
         self.queue = tf.train.slice_input_producer([self.images, self.labels],
                                                    shuffle=input_size is not None) # not shuffling if it is val
-        self.image, self.label = read_images_from_disk(self.queue, self.input_size, random_scale, random_mirror) 
+        self.image, self.label = read_images_from_disk(self.queue, self.input_size, random_scale, random_mirror, ignore_label, img_mean) 
 
     def dequeue(self, num_elements):
         '''Pack images and labels into a batch.
