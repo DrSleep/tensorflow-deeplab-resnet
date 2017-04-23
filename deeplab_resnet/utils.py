@@ -108,7 +108,7 @@ def dense_crf(probs, img=None, n_iters=10,
     
     probs = probs[0].transpose(2, 0, 1).copy(order='C') # Need a contiguous array.
     
-    d = dcrf.DenseCRF2D(h, w, n_classes) # Define DenseCRF model.
+    d = dcrf.DenseCRF2D(w, h, n_classes) # Define DenseCRF model.
     U = -np.log(probs) # Unary potential.
     U = U.reshape((n_classes, -1)) # Needs to be flat.
     d.setUnaryEnergy(U)
