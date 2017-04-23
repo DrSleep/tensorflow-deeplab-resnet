@@ -56,6 +56,8 @@ def get_arguments():
                         help="Whether to updates the running means and variances during the training.")
     parser.add_argument("--learning-rate", type=float, default=LEARNING_RATE,
                         help="Learning rate for training.")
+    parser.add_argument("--not-restore-last", action="store_true",
+                        help="Whether to not restore last (FC) layers.")
     parser.add_argument("--num-classes", type=int, default=NUM_CLASSES,
                         help="Number of classes to predict (including background).")
     parser.add_argument("--num-steps", type=int, default=NUM_STEPS,
@@ -135,7 +137,8 @@ def main():
     raw_output = net.layers['fc1_voc12']
     # Which variables to load. Running means and variances are not trainable,
     # thus all_variables() should be restored.
-    restore_var = tf.global_variables()
+    # Restore all variables, or all except the last ones.
+    restore_var = [v for v in tf.global_variables() if 'fc' not in v.name or not args.not_restore_last]
     trainable = [v for v in tf.trainable_variables() if 'fc1_voc12' in v.name] # Fine-tune only the last layers.
     
     prediction = tf.reshape(raw_output, [-1, args.num_classes])

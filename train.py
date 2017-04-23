@@ -61,6 +61,8 @@ def get_arguments():
                         help="Base learning rate for training with polynomial decay.")
     parser.add_argument("--momentum", type=float, default=MOMENTUM,
                         help="Momentum component of the optimiser.")
+    parser.add_argument("--not-restore-last", action="store_true",
+                        help="Whether to not restore last (FC) layers.")
     parser.add_argument("--num-classes", type=int, default=NUM_CLASSES,
                         help="Number of classes to predict (including background).")
     parser.add_argument("--num-steps", type=int, default=NUM_STEPS,
@@ -151,7 +153,7 @@ def main():
     raw_output = net.layers['fc1_voc12']
     # Which variables to load. Running means and variances are not trainable,
     # thus all_variables() should be restored.
-    restore_var = tf.global_variables()
+    restore_var = [v for v in tf.global_variables() if 'fc' not in v.name or not args.not_restore_last]
     all_trainable = [v for v in tf.trainable_variables() if 'beta' not in v.name and 'gamma' not in v.name]
     fc_trainable = [v for v in all_trainable if 'fc' in v.name]
     conv_trainable = [v for v in all_trainable if 'fc' not in v.name] # lr * 1.0
