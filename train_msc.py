@@ -18,15 +18,17 @@ import numpy as np
 
 from deeplab_resnet import DeepLabResNetModel, ImageReader, decode_labels, inv_preprocess, prepare_label
 
-n_classes = 21
+IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 
 BATCH_SIZE = 1
 DATA_DIRECTORY = '/home/VOCdevkit'
 DATA_LIST_PATH = './dataset/train.txt'
 GRAD_UPDATE_EVERY = 10
+IGNORE_LABEL = 255
 INPUT_SIZE = '321,321'
 LEARNING_RATE = 2.5e-4
 MOMENTUM = 0.9
+NUM_CLASSES = 21
 NUM_STEPS = 20001
 POWER = 0.9
 RANDOM_SEED = 1234
@@ -52,6 +54,8 @@ def get_arguments():
                         help="Path to the file listing the images in the dataset.")
     parser.add_argument("--grad-update-every", type=int, default=GRAD_UPDATE_EVERY,
                         help="Number of steps after which gradient update is applied.")
+    parser.add_argument("--ignore-label", type=int, default=IGNORE_LABEL,
+                        help="The index of the label to ignore during the training.")
     parser.add_argument("--input-size", type=str, default=INPUT_SIZE,
                         help="Comma-separated string with height and width of images.")
     parser.add_argument("--is-training", action="store_true",
@@ -60,6 +64,10 @@ def get_arguments():
                         help="Base learning rate for training with polynomial decay.")
     parser.add_argument("--momentum", type=float, default=MOMENTUM,
                         help="Momentum component of the optimiser.")
+    parser.add_argument("--not-restore-last", action="store_true",
+                        help="Whether to not restore last (FC) layers.")
+    parser.add_argument("--num-classes", type=int, default=NUM_CLASSES,
+                        help="Number of classes to predict (including background).")
     parser.add_argument("--num-steps", type=int, default=NUM_STEPS,
                         help="Number of training steps.")
     parser.add_argument("--power", type=float, default=POWER,
@@ -130,6 +138,8 @@ def main():
             input_size,
             args.random_scale,
             args.random_mirror,
+            args.ignore_label,
+            IMG_MEAN,
             coord)
         image_batch, label_batch = reader.dequeue(args.batch_size)
         image_batch075 = tf.image.resize_images(image_batch, [int(h * 0.75), int(w * 0.75)])
@@ -137,11 +147,11 @@ def main():
     
     # Create network.
     with tf.variable_scope('', reuse=False):
-        net = DeepLabResNetModel({'data': image_batch}, is_training=args.is_training)
+        net = DeepLabResNetModel({'data': image_batch}, is_training=args.is_training, num_classes=args.num_classes)
     with tf.variable_scope('', reuse=True):
-        net075 = DeepLabResNetModel({'data': image_batch075}, is_training=args.is_training)
+        net075 = DeepLabResNetModel({'data': image_batch075}, is_training=args.is_training, num_classes=args.num_classes)
     with tf.variable_scope('', reuse=True):
-        net05 = DeepLabResNetModel({'data': image_batch05}, is_training=args.is_training)
+        net05 = DeepLabResNetModel({'data': image_batch05}, is_training=args.is_training, num_classes=args.num_classes)
     # For a small batch size, it is better to keep 
     # the statistics of the BN layers (running means and variances)
     # frozen, and to not update the values provided by the pre-trained model. 
@@ -158,7 +168,7 @@ def main():
                                          tf.image.resize_images(raw_output05, tf.shape(raw_output100)[1:3,])]), axis=0)
     # Which variables to load. Running means and variances are not trainable,
     # thus all_variables() should be restored.
-    restore_var = tf.global_variables()
+    restore_var = [v for v in tf.global_variables() if 'fc' not in v.name or not args.not_restore_last]
     all_trainable = [v for v in tf.trainable_variables() if 'beta' not in v.name and 'gamma' not in v.name]
     fc_trainable = [v for v in all_trainable if 'fc' in v.name]
     conv_trainable = [v for v in all_trainable if 'fc' not in v.name] # lr * 1.0
@@ -169,22 +179,22 @@ def main():
     
     
     # Predictions: ignoring all predictions with labels greater or equal than n_classes
-    raw_prediction = tf.reshape(raw_output, [-1, n_classes])
-    raw_prediction100 = tf.reshape(raw_output100, [-1, n_classes])
-    raw_prediction075 = tf.reshape(raw_output075, [-1, n_classes])
-    raw_prediction05 = tf.reshape(raw_output05, [-1, n_classes])
+    raw_prediction = tf.reshape(raw_output, [-1, args.num_classes])
+    raw_prediction100 = tf.reshape(raw_output100, [-1, args.num_classes])
+    raw_prediction075 = tf.reshape(raw_output075, [-1, args.num_classes])
+    raw_prediction05 = tf.reshape(raw_output05, [-1, args.num_classes])
     
-    label_proc = prepare_label(label_batch, tf.pack(raw_output.get_shape()[1:3]), one_hot=False) # [batch_size, h, w]
-    label_proc075 = prepare_label(label_batch, tf.pack(raw_output075.get_shape()[1:3]), one_hot=False)
-    label_proc05 = prepare_label(label_batch, tf.pack(raw_output05.get_shape()[1:3]), one_hot=False)
+    label_proc = prepare_label(label_batch, tf.stack(raw_output.get_shape()[1:3]), num_classes=args.num_classes, one_hot=False) # [batch_size, h, w]
+    label_proc075 = prepare_label(label_batch, tf.stack(raw_output075.get_shape()[1:3]), num_classes=args.num_classes, one_hot=False)
+    label_proc05 = prepare_label(label_batch, tf.stack(raw_output05.get_shape()[1:3]), num_classes=args.num_classes, one_hot=False)
     
     raw_gt = tf.reshape(label_proc, [-1,])
     raw_gt075 = tf.reshape(label_proc075, [-1,])
     raw_gt05 = tf.reshape(label_proc05, [-1,])
     
-    indices = tf.squeeze(tf.where(tf.less_equal(raw_gt, n_classes - 1)), 1)
-    indices075 = tf.squeeze(tf.where(tf.less_equal(raw_gt075, n_classes - 1)), 1)
-    indices05 = tf.squeeze(tf.where(tf.less_equal(raw_gt05, n_classes - 1)), 1)
+    indices = tf.squeeze(tf.where(tf.less_equal(raw_gt, args.num_classes - 1)), 1)
+    indices075 = tf.squeeze(tf.where(tf.less_equal(raw_gt075, args.num_classes - 1)), 1)
+    indices05 = tf.squeeze(tf.where(tf.less_equal(raw_gt05, args.num_classes - 1)), 1)
     
     gt = tf.cast(tf.gather(raw_gt, indices), tf.int32)
     gt075 = tf.cast(tf.gather(raw_gt075, indices075), tf.int32)
@@ -210,12 +220,12 @@ def main():
     pred = tf.expand_dims(raw_output_up, dim=3)
     
     # Image summary.
-    images_summary = tf.py_func(inv_preprocess, [image_batch, args.save_num_images], tf.uint8)
-    labels_summary = tf.py_func(decode_labels, [label_batch, args.save_num_images], tf.uint8)
-    preds_summary = tf.py_func(decode_labels, [pred, args.save_num_images], tf.uint8)
+    images_summary = tf.py_func(inv_preprocess, [image_batch, args.save_num_images, IMG_MEAN], tf.uint8)
+    labels_summary = tf.py_func(decode_labels, [label_batch, args.save_num_images, args.num_classes], tf.uint8)
+    preds_summary = tf.py_func(decode_labels, [pred, args.save_num_images, args.num_classes], tf.uint8)
     
     total_summary = tf.summary.image('images', 
-                                     tf.concat(2, [images_summary, labels_summary, preds_summary]), 
+                                     tf.concat(axis=2, values=[images_summary, labels_summary, preds_summary]), 
                                      max_outputs=args.save_num_images) # Concatenate row-wise.
     summary_writer = tf.summary.FileWriter(args.snapshot_dir,
                                            graph=tf.get_default_graph())

@@ -18,8 +18,10 @@ import numpy as np
 
 from deeplab_resnet import DeepLabResNetModel, ImageReader, decode_labels, prepare_label
 
-SAVE_DIR = './output/'
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
+    
+NUM_CLASSES = 21
+SAVE_DIR = './output/'
 
 def get_arguments():
     """Parse all the arguments provided from the CLI.
@@ -32,6 +34,8 @@ def get_arguments():
                         help="Path to the RGB image file.")
     parser.add_argument("model_weights", type=str,
                         help="Path to the file with model weights.")
+    parser.add_argument("--num-classes", type=int, default=NUM_CLASSES,
+                        help="Number of classes to predict (including background).")
     parser.add_argument("--save-dir", type=str, default=SAVE_DIR,
                         help="Where to save predicted mask.")
     return parser.parse_args()
@@ -54,13 +58,13 @@ def main():
     # Prepare image.
     img = tf.image.decode_jpeg(tf.read_file(args.img_path), channels=3)
     # Convert RGB to BGR.
-    img_r, img_g, img_b = tf.split(split_dim=2, num_split=3, value=img)
-    img = tf.cast(tf.concat(2, [img_b, img_g, img_r]), dtype=tf.float32)
+    img_r, img_g, img_b = tf.split(axis=2, num_or_size_splits=3, value=img)
+    img = tf.cast(tf.concat(axis=2, values=[img_b, img_g, img_r]), dtype=tf.float32)
     # Extract mean.
     img -= IMG_MEAN 
     
     # Create network.
-    net = DeepLabResNetModel({'data': tf.expand_dims(img, dim=0)}, is_training=False)
+    net = DeepLabResNetModel({'data': tf.expand_dims(img, dim=0)}, is_training=False, num_classes=args.num_classes)
 
     # Which variables to load.
     restore_var = tf.global_variables()
@@ -87,7 +91,7 @@ def main():
     # Perform inference.
     preds = sess.run(pred)
     
-    msk = decode_labels(preds)
+    msk = decode_labels(preds, num_classes=args.num_classes)
     im = Image.fromarray(msk[0])
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)

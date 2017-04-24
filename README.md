@@ -18,7 +18,11 @@ This is an (re-)implementation of [DeepLab-ResNet](http://liangchiehchen.com/pro
 
 **22 Feb, 2017**:
 * The training script with multi-scale inputs `train_msc.py` now supports gradients accumulation: the relevant parameter `--grad-update-every` effectively mimics the behaviour of `iter_size` of Caffe. This allows to use batches of bigger sizes with less GPU memory being consumed. (Thanks to @arslan-chaudhry for this contribution!)
-* The random mirror and random crop options have been added. (Again big thanks to @arslan-chaudhry !) 
+* The random mirror and random crop options have been added. (Again big thanks to @arslan-chaudhry !)
+
+**23 Apr, 2017**:
+* TensorFlow 1.1.0 is now supported.
+* Three new flags `--num-classes`, `--ignore-label` and `--not-restore-last` are added to ease the usability of the scripts on new datasets. Check out [these instructions](https://github.com/DrSleep/tensorflow-deeplab-resnet#using-your-dataset) on how to set up the training process on your dataset.
 
 ## Model Description
 
@@ -107,6 +111,17 @@ python inference.py /path/to/your/image /path/to/ckpt/file
 This will run the forward pass and save the resulted mask with this colour map:
 <img src="images/colour_scheme.png" height="75"></img>
 <img src="images/mask.png"></img>
+
+## Using your dataset
+
+In order to apply the same scripts using your own dataset, you would need to follow the next steps:
+1. Create a file with instances of your dataset in the same format as in files [here](https://github.com/DrSleep/tensorflow-deeplab-resnet/tree/master/dataset);
+2. Change the flags `data-dir` and `data-list` accordingly in the script file that you will be using (e.g., `python train.py --data-dir /my/data/dir --data-list /my/data/list`);
+3. Change the `IMG_MEAN` vector accordingly in the script file that you will be using;
+4. For visualisation purposes, you will also need to change the colour map [here](https://github.com/DrSleep/tensorflow-deeplab-resnet/blob/master/deeplab_resnet/utils.py);
+5. Change the flags `num-classes` and `ignore-label` accordingly in the script that you will be using (e.g., `python train.py --ignore-label 255 --num-classes 21`).
+6. If restoring weights from the `PASCAL` models for your dataset with a different number of classes, you will also need to pass the `--not-restore-last` flag, which will prevent the last layers of size <code>21</code> from being restored.
+
 
 ## Missing features
 

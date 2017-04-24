@@ -55,7 +55,7 @@ def main():
     config.gpu_options.allow_growth = True
     
     with tf.Session(config=config) as sess:
-          init = tf.initialize_all_variables()
+          init = tf.global_variables_initializer()
           sess.run(init)
           
           # Loading .npy weights.
