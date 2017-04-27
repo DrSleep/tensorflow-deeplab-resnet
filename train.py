@@ -223,7 +223,7 @@ def main():
     sess.run(init)
     
     # Saver for storing checkpoints of the model.
-    saver = tf.train.Saver(var_list=restore_var, max_to_keep=10)
+    saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=10)
     
     # Load variables if the checkpoint is provided.
     if args.restore_from is not None:

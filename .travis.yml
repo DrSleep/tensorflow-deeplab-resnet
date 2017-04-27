@@ -19,4 +19,6 @@ script:
   - python evaluate.py --data-dir ./ --data-list ./dataset/debug.txt --ignore-label 255 --num-classes 21 --num-steps 1 --restore-from ./deeplab_resnet.ckpt
   - python evaluate_msc.py --data-dir ./ --data-list ./dataset/debug.txt --ignore-label 255 --num-classes 21 --num-steps 1 --restore-from ./deeplab_resnet.ckpt
   - python train.py --batch-size 1 --data-dir ./ --data-list ./dataset/debug.txt --ignore-label 255 --not-restore-last --num-classes 3 --num-steps 1 --random-mirror --random-scale --restore-from ./deeplab_resnet.ckpt --save-num-images 1
+  - python inference.py ./misc/2007_000129.jpg ./snapshots/model.ckpt-0 --num-classes 3
   - python train_msc.py --batch-size 1 --data-dir ./ --data-list ./dataset/debug.txt --grad-update-every 1 --ignore-label 255 --not-restore-last --num-classes 3 --num-steps 1 --random-mirror --random-scale --restore-from ./deeplab_resnet.ckpt --save-num-images 1
+  - python inference.py ./misc/2007_000129.jpg ./snapshots/model.ckpt-0 --num-classes 3
