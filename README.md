@@ -115,8 +115,9 @@ This will run the forward pass and save the resulted mask with this colour map:
 ## Using your dataset
 
 In order to apply the same scripts using your own dataset, you would need to follow the next steps:
+0. Make sure that your segmentation masks are in the same format as the ones in the DeepLab setup (i.e., without a colour map). This means that if your segmentation masks are RGB images, you would need to convert each 3-D RGB vector into a 1-D label. For example, take a look [here](https://gist.github.com/DrSleep/4bce37254c5900545e6b65f6a0858b9c);
 1. Create a file with instances of your dataset in the same format as in files [here](https://github.com/DrSleep/tensorflow-deeplab-resnet/tree/master/dataset);
-2. Change the flags `data-dir` and `data-list` accordingly in the script file that you will be using (e.g., `python train.py --data-dir /my/data/dir --data-list /my/data/list`);
+2. Change the flags `data-dir` and `data-list` accordingly in thehttps://gist.github.com/DrSleep/4bce37254c5900545e6b65f6a0858b9c); script file that you will be using (e.g., `python train.py --data-dir /my/data/dir --data-list /my/data/list`);
 3. Change the `IMG_MEAN` vector accordingly in the script file that you will be using;
 4. For visualisation purposes, you will also need to change the colour map [here](https://github.com/DrSleep/tensorflow-deeplab-resnet/blob/master/deeplab_resnet/utils.py);
 5. Change the flags `num-classes` and `ignore-label` accordingly in the script that you will be using (e.g., `python train.py --ignore-label 255 --num-classes 21`).
