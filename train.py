@@ -38,7 +38,7 @@ SAVE_NUM_IMAGES = 2
 SAVE_PRED_EVERY = 100
 SNAPSHOT_DIR = './snapshots/'
 WEIGHT_DECAY = 0.0005
-CLASS_WEIGHTS = [1.7, 100]
+CLASS_WEIGHTS = [1., 1.]
 
 
 def get_arguments():
