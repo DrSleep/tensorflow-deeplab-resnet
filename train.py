@@ -38,7 +38,6 @@ SAVE_NUM_IMAGES = 2
 SAVE_PRED_EVERY = 100
 SNAPSHOT_DIR = './snapshots/'
 WEIGHT_DECAY = 0.0005
-CLASS_WEIGHTS = [1., 1.]
 
 
 def get_arguments():
@@ -92,7 +91,7 @@ def get_arguments():
                         help="Where to save snapshots of the model.")
     parser.add_argument("--weight-decay", type=float, default=WEIGHT_DECAY,
                         help="Regularisation parameter for L2-loss.")
-    parser.add_argument('--class-weights', nargs='+', type=float, default=CLASS_WEIGHTS,
+    parser.add_argument('--class-weights', nargs='+', type=float, default=None,
                         help='Weights to multiply each class by to combat class imbalance.')
     return parser.parse_args()
 
