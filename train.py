@@ -10,6 +10,7 @@ from __future__ import print_function
 import argparse
 from datetime import datetime
 import os
+import ast
 import sys
 import time
 
@@ -23,6 +24,7 @@ IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 BATCH_SIZE = 10
 DATA_DIRECTORY = '/home/VOCdevkit'
 DATA_LIST_PATH = './dataset/train.txt'
+VAL_SIZE = 500 # only relevant if --val-list arg passed
 IGNORE_LABEL = 255
 INPUT_SIZE = '321,321'
 LEARNING_RATE = 2.5e-4
@@ -33,10 +35,10 @@ POWER = 0.9
 RANDOM_SEED = 1234
 RESTORE_FROM = './deeplab_resnet.ckpt'
 SAVE_NUM_IMAGES = 2
-SAVE_PRED_EVERY = 1000
+SAVE_PRED_EVERY = 100
 SNAPSHOT_DIR = './snapshots/'
 WEIGHT_DECAY = 0.0005
-CLASS_WEIGHTS = None
+CLASS_WEIGHTS = [1.7, 100]
 
 
 def get_arguments():
@@ -52,6 +54,10 @@ def get_arguments():
                         help="Path to the directory containing the PASCAL VOC dataset.")
     parser.add_argument("--data-list", type=str, default=DATA_LIST_PATH,
                         help="Path to the file listing the images in the dataset.")
+    parser.add_argument("--val-list", type=str, default=None,
+                        help="Path to the file listing the validation images.")
+    parser.add_argument("--val-size", type=int, default=VAL_SIZE,
+                        help="Number of samples to validate on")
     parser.add_argument("--ignore-label", type=int, default=IGNORE_LABEL,
                         help="The index of the label to ignore during the training.")
     parser.add_argument("--input-size", type=str, default=INPUT_SIZE,
@@ -224,6 +230,31 @@ def main():
 
     train_op = tf.group(train_op_conv, train_op_fc_w, train_op_fc_b)
 
+    #  Prep val data
+    if args.val_list:
+        val_steps = int(args.val_size / args.batch_size)
+        with tf.name_scope("get_val"):
+            reader_val = ImageReader(
+                args.data_dir,
+                args.val_list,
+                input_size,
+                False,
+                False,
+                args.ignore_label,
+                IMG_MEAN,
+                coord)
+            val_image_batch, val_label_batch = reader.dequeue(args.batch_size)
+
+        # Val predictions.
+        val_raw_output = tf.image.resize_bilinear(raw_output, tf.shape(val_image_batch)[1:3,])
+        val_raw_output = tf.argmax(val_raw_output, dimension=3)
+        val_pred = tf.expand_dims(val_raw_output, dim=3) # Create 4-d tensor.
+
+        # mIoU
+        val_pred = tf.reshape(val_pred, [-1,])
+        val_gt = tf.reshape(val_label_batch, [-1,])
+        weights = tf.cast(tf.less_equal(val_gt, args.num_classes - 1), tf.int32) # Ignoring all labels greater than or equal to n_classes.
+        mIoU, update_op = tf.contrib.metrics.streaming_mean_iou(val_pred, val_gt, num_classes=args.num_classes, weights=weights)
 
     # Set up tf session and initialize variables.
     config = tf.ConfigProto()
@@ -232,6 +263,9 @@ def main():
     init = tf.global_variables_initializer()
 
     sess.run(init)
+
+    if args.val_list:
+        sess.run(tf.local_variables_initializer())
 
     # Saver for storing checkpoints of the model.
     saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=10)
@@ -253,6 +287,13 @@ def main():
             loss_value, images, labels, preds, summary, _ = sess.run([reduced_loss, image_batch, label_batch, pred, total_summary, train_op], feed_dict=feed_dict)
             summary_writer.add_summary(summary, step)
             save(saver, sess, args.snapshot_dir, step)
+
+            # Print val jaccard loss
+            if args.val_list:
+                for vstep in range(val_steps):
+                    val_preds, _ = sess.run([val_pred, update_op])
+                print('Mean IoU: {:.3f}'.format(mIoU.eval(session=sess)))
+
         else:
             loss_value, _ = sess.run([reduced_loss, train_op], feed_dict=feed_dict)
         duration = time.time() - start_time
