@@ -95,7 +95,7 @@ def get_arguments():
                         help='Weights to multiply each class by to combat class imbalance.')
     return parser.parse_args()
 
-def save(saver, sess, logdir, step):
+def save(saver, sess, logdir, step, val_iou=None):
    '''Save weights.
 
    Args:
@@ -104,7 +104,7 @@ def save(saver, sess, logdir, step):
      logdir: path to the snapshots directory.
      step: current training step.
    '''
-   model_name = 'model.ckpt'
+   model_name = 'model.ckpt' if not val_iou else 'model_{:.3f}_viou.ckpt'.format(val_iou)
    checkpoint_path = os.path.join(logdir, model_name)
 
    if not os.path.exists(logdir):
@@ -267,7 +267,7 @@ def main():
         sess.run(tf.local_variables_initializer())
 
     # Saver for storing checkpoints of the model.
-    saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=10)
+    saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=20)
 
     # Load variables if the checkpoint is provided.
     if args.restore_from is not None:
@@ -291,7 +291,11 @@ def main():
             if args.val_list:
                 for vstep in range(val_steps):
                     val_preds, _ = sess.run([val_pred, update_op])
-                print('Mean IoU: {:.3f}'.format(mIoU.eval(session=sess)))
+                viou = mIoU.eval(session=sess)
+                print('Mean IoU: {:.3f}'.format(viou))
+                save(saver, sess, args.snapshot_dir, step, val_iou=viou)
+            else:
+                save(saver, sess, args.snapshot_dir, step)
 
         else:
             loss_value, _ = sess.run([reduced_loss, train_op], feed_dict=feed_dict)
