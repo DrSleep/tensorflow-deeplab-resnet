@@ -285,7 +285,6 @@ def main():
         if step % args.save_pred_every == 0:
             loss_value, images, labels, preds, summary, _ = sess.run([reduced_loss, image_batch, label_batch, pred, total_summary, train_op], feed_dict=feed_dict)
             summary_writer.add_summary(summary, step)
-            save(saver, sess, args.snapshot_dir, step)
 
             # Print val jaccard loss
             if args.val_list:
