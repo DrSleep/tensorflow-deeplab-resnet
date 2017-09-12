@@ -38,6 +38,8 @@ def get_arguments():
                         help="Number of classes to predict (including background).")
     parser.add_argument("--save-dir", type=str, default=SAVE_DIR,
                         help="Where to save predicted mask.")
+    parser.add_argument("--crf", type=str, default=None,
+                        help="Use a CRF to clean up prediction.")
     return parser.parse_args()
 
 def load(saver, sess, ckpt_path):
@@ -74,8 +76,9 @@ def main():
     raw_output_up = tf.image.resize_bilinear(raw_output, tf.shape(img)[0:2,])
 
     # CRF.
-    raw_output_up = tf.nn.softmax(raw_output_up)
-    raw_output_up = tf.py_func(dense_crf, [raw_output_up, tf.expand_dims(img_orig, dim=0)], tf.float32)
+    if args.crf:
+        raw_output_up = tf.nn.softmax(raw_output_up)
+        raw_output_up = tf.py_func(dense_crf, [raw_output_up, tf.expand_dims(img_orig, dim=0)], tf.float32)
 
     raw_output_up = tf.argmax(raw_output_up, dimension=3)
     pred = tf.expand_dims(raw_output_up, dim=3)

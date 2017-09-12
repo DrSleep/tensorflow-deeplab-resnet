@@ -46,6 +46,8 @@ def get_arguments():
                         help="Number of images in the validation set.")
     parser.add_argument("--restore-from", type=str, default=RESTORE_FROM,
                         help="Where restore model parameters from.")
+    parser.add_argument("--crf", type=str, default=None,
+                        help="Use a CRF to clean up prediction.")
     return parser.parse_args()
 
 def load(saver, sess, ckpt_path):
@@ -89,12 +91,14 @@ def main():
     # Predictions.
     raw_output = net.layers['fc1_voc12']
     raw_output = tf.image.resize_bilinear(raw_output, tf.shape(image_batch)[1:3,])
-    raw_output = tf.argmax(raw_output, dimension=3)
-    pred = tf.expand_dims(raw_output, dim=3) # Create 4-d tensor.
 
     # CRF.
-    inv_image = tf.py_func(inv_preprocess, [image_batch], tf.uint8)
-    raw_output = tf.py_func(dense_crf, [tf.nn.softmax(raw_output), inv_image], tf.float32)
+    if args.crf:
+        inv_image = tf.py_func(inv_preprocess, [image_batch], tf.uint8)
+        raw_output = tf.py_func(dense_crf, [tf.nn.softmax(raw_output), inv_image], tf.float32)
+
+    raw_output = tf.argmax(raw_output, dimension=3)
+    pred = tf.expand_dims(raw_output, dim=3) # Create 4-d tensor.
 
     # mIoU
     pred = tf.reshape(pred, [-1,])
