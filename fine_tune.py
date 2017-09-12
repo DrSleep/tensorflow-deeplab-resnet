@@ -24,6 +24,7 @@ IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 BATCH_SIZE = 4
 DATA_DIRECTORY = '/home/VOCdevkit'
 DATA_LIST_PATH = './dataset/train.txt'
+VAL_SIZE = 500 # only relevant if --val-list arg passed
 IGNORE_LABEL = 255
 INPUT_SIZE = '321,321'
 LEARNING_RATE = 1e-4
@@ -34,7 +35,6 @@ RESTORE_FROM = './deeplab_resnet.ckpt'
 SAVE_NUM_IMAGES = 2
 SAVE_PRED_EVERY = 100
 SNAPSHOT_DIR = './snapshots_finetune/'
-CLASS_WEIGHTS = None
 
 def get_arguments():
     """Parse all the arguments provided from the CLI.
@@ -49,6 +49,10 @@ def get_arguments():
                         help="Path to the directory containing the PASCAL VOC dataset.")
     parser.add_argument("--data-list", type=str, default=DATA_LIST_PATH,
                         help="Path to the file listing the images in the dataset.")
+    parser.add_argument("--val-list", type=str, default=None,
+                        help="Path to the file listing the validation images.")
+    parser.add_argument("--val-size", type=int, default=VAL_SIZE,
+                        help="Number of samples to validate on")
     parser.add_argument("--ignore-label", type=int, default=IGNORE_LABEL,
                         help="The index of the label to ignore during the training.")
     parser.add_argument("--input-size", type=str, default=INPUT_SIZE,
@@ -77,12 +81,12 @@ def get_arguments():
                         help="Save summaries and checkpoint every often.")
     parser.add_argument("--snapshot-dir", type=str, default=SNAPSHOT_DIR,
                         help="Where to save snapshots of the model.")
-    parser.add_argument('--class-weights', nargs='+', type=float, default=CLASS_WEIGHTS,
+    parser.add_argument('--class-weights', nargs='+', type=float, default=None,
                         help='Weights to multiply each class by to combat class imbalance.')
     return parser.parse_args()
 
-def save(saver, sess, logdir, step):
-    model_name = 'model.ckpt'
+def save(saver, sess, logdir, step, val_iou=None):
+    model_name = 'model.ckpt' if not val_iou else 'model_{:.3f}_viou.ckpt'.format(val_iou)
     checkpoint_path = os.path.join(logdir, model_name)
 
     if not os.path.exists(logdir):
@@ -162,17 +166,6 @@ def main():
         weights = tf.gather(raw_weights, indices)
         loss = tf.losses.sparse_softmax_cross_entropy(logits=prediction, labels=gt, weights=weights)
 
-    # prediction = tf.reshape(raw_output, [-1, args.num_classes])
-    # label_proc = prepare_label(label_batch, tf.stack(raw_output.get_shape()[1:3]), num_classes=args.num_classes)
-    # gt = tf.reshape(label_proc, [-1, args.num_classes])
-    #
-    # # Pixel-wise softmax loss.
-    # if not args.class_weights:
-    #     loss = tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=gt)
-    # else:
-    #     weights = tf.gather(args.class_weights, tf.cast(gt, tf.int32))
-    #     loss = tf.losses.softmax_cross_entropy(logits=prediction, onehot_labels=gt, weights=weights)
-
     reduced_loss = tf.reduce_mean(loss)
 
     # Processed predictions.
@@ -195,6 +188,32 @@ def main():
     optimiser = tf.train.AdamOptimizer(learning_rate=args.learning_rate)
     optim = optimiser.minimize(reduced_loss, var_list=trainable)
 
+    #  Prep val data
+    if args.val_list:
+        val_steps = int(args.val_size / args.batch_size)
+        with tf.name_scope("get_val"):
+            reader_val = ImageReader(
+                args.data_dir,
+                args.val_list,
+                input_size,
+                False,
+                False,
+                args.ignore_label,
+                IMG_MEAN,
+                coord)
+            val_image_batch, val_label_batch = reader.dequeue(args.batch_size)
+
+        # Val predictions.
+        val_raw_output = tf.image.resize_bilinear(raw_output, tf.shape(val_image_batch)[1:3,])
+        val_raw_output = tf.argmax(val_raw_output, dimension=3)
+        val_pred = tf.expand_dims(val_raw_output, dim=3) # Create 4-d tensor.
+
+        # mIoU
+        val_pred = tf.reshape(val_pred, [-1,])
+        val_gt = tf.reshape(val_label_batch, [-1,])
+        weights = tf.cast(tf.less_equal(val_gt, args.num_classes - 1), tf.int32) # Ignoring all labels greater than or equal to n_classes.
+        mIoU, update_op = tf.contrib.metrics.streaming_mean_iou(val_pred, val_gt, num_classes=args.num_classes, weights=weights)
+
     # Set up tf session and initialize variables.
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -203,8 +222,11 @@ def main():
 
     sess.run(init)
 
+    if args.val_list:
+        sess.run(tf.local_variables_initializer())
+
     # Saver for storing checkpoints of the model.
-    saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=40)
+    saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=20)
 
     # Load variables if the checkpoint is provided.
     if args.restore_from is not None:
@@ -221,7 +243,17 @@ def main():
         if step % args.save_pred_every == 0:
             loss_value, images, labels, preds, summary, _ = sess.run([reduced_loss, image_batch, label_batch, pred, total_summary, optim])
             summary_writer.add_summary(summary, step)
-            save(saver, sess, args.snapshot_dir, step)
+
+            # Print val jaccard loss
+            if args.val_list:
+                for vstep in range(val_steps):
+                    val_preds, _ = sess.run([val_pred, update_op])
+                viou = mIoU.eval(session=sess)
+                print('Mean IoU: {:.3f}'.format(viou))
+                save(saver, sess, args.snapshot_dir, step, val_iou=viou)
+            else:
+                save(saver, sess, args.snapshot_dir, step)
+
         else:
             loss_value, _ = sess.run([reduced_loss, optim])
         duration = time.time() - start_time
