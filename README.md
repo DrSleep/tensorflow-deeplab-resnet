@@ -47,7 +47,7 @@ For more details on the underlying model please refer to the following paper:
 ## Requirements
 
 TensorFlow needs to be installed before running the scripts.
-TensorFlow v1.1.0 is supported; for TensorFlow v0.12 please refer to this [branch](https://github.com/DrSleep/tensorflow-deeplab-resnet/tree/tf-0.12); for TensorFlow v0.11 please refer to this [branch](https://github.com/DrSleep/tensorflow-deeplab-resnet/tree/tf-0.11). Note that those branches may not have the same functional as the current master. 
+TensorFlow v1.1.0 is supported; for TensorFlow v0.12 please refer to this [branch](https://github.com/DrSleep/tensorflow-deeplab-resnet/tree/tf-0.12); for TensorFlow v0.11 please refer to this [branch](https://github.com/DrSleep/tensorflow-deeplab-resnet/tree/tf-0.11). Note that those branches may not have the same functional as the current master.
 
 To install the required python packages (except TensorFlow), run
 ```bash
@@ -60,10 +60,10 @@ pip install -user -r requirements.txt
 
 ## Caffe to TensorFlow conversion
 
-To imitate the structure of the model, we have used `.caffemodel` files provided by the [authors](http://liangchiehchen.com/projects/DeepLabv2_resnet.html). The conversion has been performed using [Caffe to TensorFlow](https://github.com/ethereon/caffe-tensorflow) with an additional configuration for atrous convolution and batch normalisation (since the batch normalisation provided by Caffe-tensorflow only supports inference). 
+To imitate the structure of the model, we have used `.caffemodel` files provided by the [authors](http://liangchiehchen.com/projects/DeepLabv2_resnet.html). The conversion has been performed using [Caffe to TensorFlow](https://github.com/ethereon/caffe-tensorflow) with an additional configuration for atrous convolution and batch normalisation (since the batch normalisation provided by Caffe-tensorflow only supports inference).
 There is no need to perform the conversion yourself as you can download the already converted models - `deeplab_resnet.ckpt` (pre-trained) and `deeplab_resnet_init.ckpt` (the last layers are randomly initialised) - [here](https://drive.google.com/open?id=0B_rootXHuswsZ0E4Mjh1ZU5xZVU).
 
-Nevertheless, it is easy to perform the conversion manually, given that the appropriate `.caffemodel` file has been downloaded, and [Caffe to TensorFlow](https://github.com/ethereon/caffe-tensorflow) dependencies have been installed. The Caffe model definition is provided in `misc/deploy.prototxt`. 
+Nevertheless, it is easy to perform the conversion manually, given that the appropriate `.caffemodel` file has been downloaded, and [Caffe to TensorFlow](https://github.com/ethereon/caffe-tensorflow) dependencies have been installed. The Caffe model definition is provided in `misc/deploy.prototxt`.
 To extract weights from `.caffemodel`, run the following:
 ```bash
 python convert.py /path/to/deploy/prototxt --caffemodel /path/to/caffemodel --data-output-path /where/to/save/numpy/weights
@@ -90,7 +90,7 @@ To see the documentation on each of the training settings run the following:
 python train.py --help
 ```
 
-An additional script, `fine_tune.py`, demonstrates how to train only the last layers of the network. The script `train_msc.py` with multi-scale inputs fully resembles the training setup of the original model. 
+An additional script, `fine_tune.py`, demonstrates how to train only the last layers of the network. The script `train_msc.py` with multi-scale inputs fully resembles the training setup of the original model.
 
 
 ## Evaluation
@@ -125,10 +125,50 @@ In order to apply the same scripts using your own dataset, you would need to fol
 6. If restoring weights from the `PASCAL` models for your dataset with a different number of classes, you will also need to pass the `--not-restore-last` flag, which will prevent the last layers of size <code>21</code> from being restored.
 
 
-## Missing features
+## New Features
 
-The post-processing step with CRF is currently being implemented [here](https://github.com/DrSleep/tensorflow-deeplab-resnet/tree/crf).
+###  Training and fine-tuning
 
-    
+These features are included in the [training](https://github.com/naldeborgh7575/tensorflow-deeplab-resnet/blob/master/train.py) and [fine-tuning](https://github.com/naldeborgh7575/tensorflow-deeplab-resnet/blob/master/fine_tune.py) scripts.
+
+1. <b>--class-weights </b> [float ...]: This argument allows training with an asymmetric loss function (helpful with class imbalance). This flag is followed by a float for each class, representing the relative weight that the logit will be multiplied by. Order of classes is the same as `label_colours` in [deeplab_resnet/utils.py](https://github.com/naldeborgh7575/tensorflow-deeplab-resnet/blob/master/deeplab_resnet/utils.py#L7).
+
+  ```bash
+  python train.py --class-weights 1. 2.7
+  ```
+
+2.  <b>--val-list </b> [str]: Location of list of validation data. This instructs the script to report the [Jaccard loss](https://en.wikipedia.org/wiki/Jaccard_index) of validation data each time a checkpoint is created. *This flag should be accompanied by a --val-size flag, indicating how many validation chips there are (defaults to 500)*
+
+  ```bash
+  python train.py --val-list ../footprints/splits/validation_tf.txt --val-size 750
+  ```
+
+### Evaluation and prediction
+
+The following update can be found in the [evaluation](https://github.com/naldeborgh7575/tensorflow-deeplab-resnet/blob/master/evaluate.py) and [inference](https://github.com/naldeborgh7575/tensorflow-deeplab-resnet/blob/master/inference.py) scripts.
+
+1. <b>--crf</b>: Use a [CRF](https://arxiv.org/abs/1210.5644) to 'clean up' the output of the network.
+
+### Sample run
+
+1. Fine tune final layers.
+  ```bash
+  python2 fine_tune.py --not-restore-last --batch-size 2 --num-steps 7500 \
+    --data-dir ../footprints/ --data-list ../footprints/splits/train_tf.txt \
+    --val-list ../footprints/splits/validation_tf.txt --val-size 750 \
+    --class-weights 1.7  100. --ignore-label 128 --input-size 224,224 \
+    --learning-rate 1e-4 --num-classes 2 --restore-from ./deeplab_resnet.ckpt
+  ```
+
+2. Retrain entire net
+
+  ```bash
+  python2 train.py --batch-size 10  --num-steps 1500 --data-dir ../footprints/ \
+    --data-list ../footprints/splits/train_tf.txt --class-weights 1.7  100. \
+    --val-list ../footprints/splits/validation_tf.txt --val-size 750 \
+    --ignore-label 128 --input-size 224,224 --learning-rate 2.5e-4 --num-classes 2 \
+    --restore-from ./snapshots_finetune/model_0.474_viou.ckpt-4500
+  ```
+
 ## Other implementations
 * [DeepLab-LargeFOV in TensorFlow](https://github.com/DrSleep/tensorflow-deeplab-lfov)
