@@ -86,7 +86,7 @@ def get_arguments():
     return parser.parse_args()
 
 def save(saver, sess, logdir, step, val_iou=None):
-    model_name = 'model.ckpt' if not val_iou else 'model_{:.3f}_viou.ckpt'.format(val_iou)
+    model_name = 'model.ckpt' if not val_iou else 'model_{:.6f}_viou.ckpt'.format(val_iou)
     checkpoint_path = os.path.join(logdir, model_name)
 
     if not os.path.exists(logdir):
@@ -249,7 +249,7 @@ def main():
                 for vstep in range(val_steps):
                     val_preds, _ = sess.run([val_pred, update_op])
                 viou = mIoU.eval(session=sess)
-                print('Mean IoU: {:.3f}'.format(viou))
+                print('Mean IoU: {:.6f}'.format(viou))
                 save(saver, sess, args.snapshot_dir, step, val_iou=viou)
             else:
                 save(saver, sess, args.snapshot_dir, step)
