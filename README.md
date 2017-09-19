@@ -4,6 +4,27 @@
 
 This is an (re-)implementation of [DeepLab-ResNet](http://liangchiehchen.com/projects/DeepLabv2_resnet.html) in TensorFlow for semantic image segmentation on the [PASCAL VOC dataset](http://host.robots.ox.ac.uk/pascal/VOC/).
 
+## Frequently Asked Questions
+
+If you encounter some problems and would like to create an issue, please read this first. If the guide below does not cover your question, please use search to see if a similar issue has already been solved before. Finally, if you are unable to find an answer, please fill in the issue with details of your problem provided.
+
+#### Which `python` version should I use?
+
+All the experiments are been done using `python2.7`. `python3` will likely require some minor modifications.
+
+#### After training, I have multiple files that look like `model.ckpt-xxxx.index`, `model.ckpt-xxxx.dataxxxx` and `model.ckpt-xxxx.meta`. Which one of them should I use to restore the model for inference?
+
+Instead of providing a path to one of those files, you must provide just `model.ckpt-xxxx`. It will fetch other files.
+
+#### My model is not learning anything. What should I do?
+
+First, check that your images are being read correctly. The setup implies that segmentation masks are saved without a colour map, i.e., each pixel contains a class index, not an RGB value. 
+Second, tune your hyperparameters. As there are no general strategies that work for each case, the design of this procedure is up to you.
+
+#### I want to use my own dataset. What should I do?
+
+Please refer to this [topic](https://github.com/DrSleep/tensorflow-deeplab-resnet#using-your-dataset).
+
 ## Updates
 
 **29 Jan, 2017**:
@@ -14,7 +35,7 @@ This is an (re-)implementation of [DeepLab-ResNet](http://liangchiehchen.com/pro
 **11 Feb, 2017**:
 * The training script `train.py` has been re-written following the original optimisation setup: SGD with momentum, weight decay, learning rate with polynomial decay, different learning rates for different layers, ignoring the 'void' label (<code>255</code>).
 * The training script with multi-scale inputs `train_msc.py` has been added: the input is resized to <code>0.5</code> and <code>0.75</code> of the original resolution, and <code>4</code> losses are aggregated: loss on the original resolution, on the <code>0.75</code> resolution, on the <code>0.5</code> resolution, and loss on the all fused outputs.
-* Evaluation of a single-scale converted pre-trained model on the PASCAL VOC validation dataset (using ['SegmentationClassAug'](https://www.dropbox.com/s/oeu149j8qtbs1x0/SegmentationClassAug.zip?dl=0)) leads to <code>86.9%</code> mIoU. This is confirmed by [the official PASCAL VOC server](http://host.robots.ox.ac.uk/anonymous/FIQPRH.html). The score on the test dataset is [<code>75.8%</code>](http://host.robots.ox.ac.uk/anonymous/EPBIGU.html).
+* Evaluation of a single-scale converted pre-trained model on the PASCAL VOC validation dataset (using ['SegmentationClassAug'](https://www.dropbox.com/s/oeu149j8qtbs1x0/SegmentationClassAug.zip?dl=0)) leads to <code>86.9%</code> mIoU (as trainval was likely to be used for final training). This is confirmed by [the official PASCAL VOC server](http://host.robots.ox.ac.uk/anonymous/FIQPRH.html). The score on the test dataset is [<code>75.8%</code>](http://host.robots.ox.ac.uk/anonymous/EPBIGU.html).
 
 **22 Feb, 2017**:
 * The training script with multi-scale inputs `train_msc.py` now supports gradients accumulation: the relevant parameter `--grad-update-every` effectively mimics the behaviour of `iter_size` of Caffe. This allows to use batches of bigger sizes with less GPU memory being consumed. (Thanks to @arslan-chaudhry for this contribution!)
