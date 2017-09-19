@@ -16,7 +16,7 @@ import tensorflow as tf
 import numpy as np
 from tqdm import tqdm
 
-from deeplab_resnet import DeepLabResNetModel, ImageReader, prepare_label
+from deeplab_resnet import DeepLabResNetModel, ImageReader, dense_crf, inv_preprocess, prepare_label
 
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 
@@ -48,6 +48,8 @@ def get_arguments():
                         help="Where restore model parameters from.")
     parser.add_argument("--augment", action='store_true',
                         help="Use prediction-time augemntation, predict output of 4 rotations and average.")
+    parser.add_argument("--crf", action='store_true',
+                        help="Use a CRF to clean up prediction.")
     return parser.parse_args()
 
 
@@ -95,6 +97,11 @@ def main():
         # Predictions.
         raw_output = net.layers['fc1_voc12']
         raw_output = tf.image.resize_bilinear(raw_output, tf.shape(image_batch)[1:3,])
+
+        # CRF.
+        if args.crf:
+            inv_image = tf.py_func(inv_preprocess, [image_batch, 1, IMG_MEAN], tf.uint8)
+            raw_output = tf.py_func(dense_crf, [tf.nn.softmax(raw_output), inv_image], tf.float32)
 
         # Rotate to original
         raw_output = tf.image.rot90(tf.squeeze(raw_output), k=(4-rots))
