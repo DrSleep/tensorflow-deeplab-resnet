@@ -55,35 +55,43 @@ def load(saver, sess, ckpt_path):
 
 def main():
     """Create the model and start the evaluation process."""
-    args = get_arguments()
+    args, rot_preds = get_arguments(),[]
 
     # Prepare image.
     img_orig = tf.image.decode_png(tf.read_file(args.img_path), channels=3)
-    # Convert RGB to BGR.
-    img_r, img_g, img_b = tf.split(axis=2, num_or_size_splits=3, value=img_orig)
-    img = tf.cast(tf.concat(axis=2, values=[img_b, img_g, img_r]), dtype=tf.float32)
-    # Extract mean.
-    img -= IMG_MEAN
 
-    # Create network.
-    net = DeepLabResNetModel({'data': tf.expand_dims(img, dim=0)}, is_training=False, num_classes=args.num_classes)
+    for rots in range(4):
+        # Convert RGB to BGR.
+        img_r, img_g, img_b = tf.split(axis=2, num_or_size_splits=3, value=img_orig)
+        img = tf.cast(tf.concat(axis=2, values=[img_b, img_g, img_r]), dtype=tf.float32)
+        # Extract mean.
+        img -= IMG_MEAN
 
-    # Which variables to load.
-    restore_var = tf.global_variables()
+        img = tf.image.rot90(img, k=rots)
 
-    # Predictions.
-    raw_output = net.layers['fc1_voc12']
-    raw_output_up = tf.image.resize_bilinear(raw_output, tf.shape(img)[0:2,])
+        # Create network.
+        net = DeepLabResNetModel({'data': tf.expand_dims(img, dim=0)}, is_training=False, num_classes=args.num_classes)
+        tf.get_variable_scope().reuse_variables()
 
-    # CRF.
-    if args.crf:
-        print('Using CRF on model output')
-        raw_output_up = tf.nn.softmax(raw_output_up)
-        raw_output_up = tf.py_func(dense_crf, [raw_output_up, tf.expand_dims(img_orig, dim=0)], tf.float32)
+        # Which variables to load.
+        restore_var = tf.global_variables()
 
-    raw_output_up = tf.argmax(raw_output_up, dimension=3)
-    pred = tf.expand_dims(raw_output_up, dim=3)
+        # Predictions.
+        raw_output = net.layers['fc1_voc12']
+        raw_output_up = tf.image.resize_bilinear(raw_output, tf.shape(img)[0:2,])
 
+        # CRF.
+        if args.crf:
+            raw_output_up = tf.nn.softmax(raw_output_up)
+            raw_output_up = tf.py_func(dense_crf, [raw_output_up, tf.expand_dims(img_orig, dim=0)], tf.float32)
+
+        raw_output_up = tf.image.rot90(tf.squeeze(raw_output_up), k=(4-rots))
+        raw_output_up = tf.expand_dims(raw_output_up, dim=0)
+        rot_preds.append(raw_output_up)
+
+    pred = tf.reduce_mean(tf.concat(rot_preds, axis=0), axis=0)
+    pred = tf.argmax(tf.expand_dims(pred, dim=0), dimension=3)
+    pred = tf.cast(tf.expand_dims(pred, dim=3), tf.int32)
 
     # Set up TF session and initialize variables.
     config = tf.ConfigProto()
