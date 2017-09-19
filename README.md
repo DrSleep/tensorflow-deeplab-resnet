@@ -18,7 +18,7 @@ Instead of providing a path to one of those files, you must provide just `model.
 
 #### My model is not learning anything. What should I do?
 
-First, check that your images are being read correctly. The setup implies that segmentation masks are saved without a colour map, i.e., each pixel contains a class index, not an RGB value. 
+First, check that your images are being read correctly. The setup implies that segmentation masks are saved without a colour map, i.e., each pixel contains a class index, not an RGB value.
 Second, tune your hyperparameters. As there are no general strategies that work for each case, the design of this procedure is up to you.
 
 #### I want to use my own dataset. What should I do?
@@ -158,11 +158,13 @@ These features are included in the [training](https://github.com/naldeborgh7575/
   python train.py --class-weights 1. 2.7
   ```
 
-2.  <b>--val-list </b> [str]: Location of list of validation data. This instructs the script to report the [Jaccard loss](https://en.wikipedia.org/wiki/Jaccard_index) of validation data each time a checkpoint is created. *This flag should be accompanied by a --val-size flag, indicating how many validation chips there are (defaults to 500)*
+2.  <b>--val-list </b> [str]: Location of list of validation data. This instructs the script to report the [Jaccard loss](https://en.wikipedia.org/wiki/Jaccard_index) of validation data each time a checkpoint is created. Note that this is a streaming value and is simply  updated as each checkpoint is created. *This flag should be accompanied by a --val-size flag, indicating how many validation chips there are (defaults to 500)*
 
   ```bash
   python train.py --val-list ../footprints/splits/validation_tf.txt --val-size 750
   ```
+
+3. <b>--val-size</b> [int]: Number of images to validate on each time validation is performed.
 
 ### Evaluation and prediction
 
