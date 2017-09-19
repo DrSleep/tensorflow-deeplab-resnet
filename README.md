@@ -149,24 +149,26 @@ The following update can be found in the [evaluation](https://github.com/naldebo
 
 1. <b>--crf</b>: Use a [CRF](https://arxiv.org/abs/1210.5644) to 'clean up' the output of the network.
 
+2. <b>--augment</b>: Use prediction-time augmentation. Predictions will be calculated at 0, 90, 180 and 270 degrees, and averaged for a final prediction.
+
 ### Sample run
 
 1. Fine tune final layers.
   ```bash
-  python2 fine_tune.py --not-restore-last --batch-size 2 --num-steps 7500 \
+  python2 fine_tune.py --not-restore-last --batch-size 2 --num-steps 3500 \
     --data-dir ../footprints/ --data-list ../footprints/splits/train_tf.txt \
     --val-list ../footprints/splits/validation_tf.txt --val-size 750 \
-    --class-weights 1.7  100. --ignore-label 128 --input-size 224,224 \
+    --class-weights 1.  91.82. --ignore-label 128 --input-size 256,256 \
     --learning-rate 1e-4 --num-classes 2 --restore-from ./deeplab_resnet.ckpt
   ```
 
 2. Retrain entire net
 
   ```bash
-  python2 train.py --batch-size 10  --num-steps 1500 --data-dir ../footprints/ \
-    --data-list ../footprints/splits/train_tf.txt --class-weights 1.7  100. \
+  python2 train.py --batch-size 10  --num-steps 15000 --data-dir ../footprints/ \
+    --data-list ../footprints/splits/train_tf.txt --class-weights 1.  91.84 \
     --val-list ../footprints/splits/validation_tf.txt --val-size 750 \
-    --ignore-label 128 --input-size 224,224 --learning-rate 2.5e-4 --num-classes 2 \
+    --ignore-label 128 --input-size 256,256 --learning-rate 2.5e-4 --num-classes 2 \
     --restore-from ./snapshots_finetune/model_0.474_viou.ckpt-4500
   ```
 
