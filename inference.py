@@ -38,6 +38,8 @@ def get_arguments():
                         help="Number of classes to predict (including background).")
     parser.add_argument("--save-dir", type=str, default=SAVE_DIR,
                         help="Where to save predicted mask.")
+    parser.add_argument("--augment", action='store_true',
+                        help="Use prediction-time augemntation, predict output of 4 rotations and average.")
     parser.add_argument("--crf", action='store_true',
                         help="Use a CRF to clean up prediction.")
     return parser.parse_args()
@@ -88,6 +90,9 @@ def main():
         raw_output_up = tf.image.rot90(tf.squeeze(raw_output_up), k=(4-rots))
         raw_output_up = tf.expand_dims(raw_output_up, dim=0)
         rot_preds.append(raw_output_up)
+
+        if not args.augment:
+            break
 
     pred = tf.reduce_mean(tf.concat(rot_preds, axis=0), axis=0)
     pred = tf.argmax(tf.expand_dims(pred, dim=0), dimension=3)
