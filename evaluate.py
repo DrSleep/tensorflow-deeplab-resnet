@@ -46,7 +46,10 @@ def get_arguments():
                         help="Number of images in the validation set.")
     parser.add_argument("--restore-from", type=str, default=RESTORE_FROM,
                         help="Where restore model parameters from.")
+    parser.add_argument("--augment", action='store_true',
+                        help="Use prediction-time augemntation, predict output of 4 rotations and average.")
     return parser.parse_args()
+
 
 def load(saver, sess, ckpt_path):
     '''Load trained weights.
@@ -60,8 +63,7 @@ def load(saver, sess, ckpt_path):
     print("Restored model parameters from {}".format(ckpt_path))
 
 def main():
-    """Create the model and start the evaluation process."""
-    args = get_arguments()
+    args, preds = get_arguments(), []
 
     # Create queue coordinator.
     coord = tf.train.Coordinator()
@@ -77,20 +79,34 @@ def main():
             args.ignore_label,
             IMG_MEAN,
             coord)
-        image, label = reader.image, reader.label
-    image_batch, label_batch = tf.expand_dims(image, dim=0), tf.expand_dims(label, dim=0) # Add one batch dimension.
+        image_orig, label = reader.image, reader.label
 
-    # Create network.
-    net = DeepLabResNetModel({'data': image_batch}, is_training=False, num_classes=args.num_classes)
+    for rots in range(4):
+        image = tf.image.rot90(image_orig, k=rots)
+        image_batch, label_batch = tf.expand_dims(image, dim=0), tf.expand_dims(label, dim=0) # Add one batch dimension.
 
-    # Which variables to load.
-    restore_var = tf.global_variables()
+        # Create network.
+        net = DeepLabResNetModel({'data': image_batch}, is_training=False, num_classes=args.num_classes)
+        tf.get_variable_scope().reuse_variables()
 
-    # Predictions.
-    raw_output = net.layers['fc1_voc12']
-    raw_output = tf.image.resize_bilinear(raw_output, tf.shape(image_batch)[1:3,])
-    raw_output = tf.argmax(raw_output, dimension=3)
-    pred = tf.expand_dims(raw_output, dim=3) # Create 4-d tensor.
+        # Which variables to load.
+        restore_var = tf.global_variables()
+
+        # Predictions.
+        raw_output = net.layers['fc1_voc12']
+        raw_output = tf.image.resize_bilinear(raw_output, tf.shape(image_batch)[1:3,])
+
+        # Rotate to original
+        raw_output = tf.image.rot90(tf.squeeze(raw_output), k=(4-rots))
+        raw_output = tf.expand_dims(raw_output, dim=0)
+        preds.append(raw_output)
+
+        if not args.augment:
+            break
+
+    pred = tf.reduce_mean(tf.concat(preds, axis=0), axis=0)
+    pred = tf.argmax(tf.expand_dims(pred, dim=0), dimension=3)
+    pred = tf.cast(tf.expand_dims(pred, dim=3), tf.int32) # create 4D tensor
 
     # mIoU
     pred = tf.reshape(pred, [-1,])
