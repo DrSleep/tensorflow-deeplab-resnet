@@ -185,9 +185,9 @@ def main():
     raw_prediction05 = tf.reshape(raw_output05, [-1, args.num_classes])
     
     # Cross Entropy Loss --> Be careful about 'gt' input format -->has to be 0-based: [0:n_classes -1]
-    if args.ignore_label == 0:
-        label_batch = tf.to_int32(label_batch)
-        label_batch = label_batch -1
+    # if args.ignore_label == 0:
+    #     label_batch = tf.to_int32(label_batch)
+    #     label_batch = tf.subtract(label_batch , 1)
 
     label_proc = prepare_label(label_batch, tf.stack(raw_output.get_shape()[1:3]), num_classes=args.num_classes, one_hot=False) # [batch_size, h, w]
     label_proc075 = prepare_label(label_batch, tf.stack(raw_output075.get_shape()[1:3]), num_classes=args.num_classes, one_hot=False)
@@ -225,14 +225,12 @@ def main():
     pred = tf.expand_dims(raw_output_up, dim=3)
     
     # Image summary.
-    if args.ignore_label == 0:
-        images_summary = tf.py_func(inv_preprocess, [image_batch, args.save_num_images, IMG_MEAN], tf.uint8)
-        labels_summary = tf.py_func(decode_labels, [label_batch + 1, args.save_num_images, args.num_classes], tf.uint8)
-        preds_summary = tf.py_func(decode_labels, [pred + 1, args.save_num_images, args.num_classes], tf.uint8)
-    else:
-        images_summary = tf.py_func(inv_preprocess, [image_batch, args.save_num_images, IMG_MEAN], tf.uint8)
-        labels_summary = tf.py_func(decode_labels, [label_batch, args.save_num_images, args.num_classes], tf.uint8)
-        preds_summary = tf.py_func(decode_labels, [pred, args.save_num_images, args.num_classes], tf.uint8)        
+    # if args.ignore_label == 0:
+    #     label_batch = tf.add(label_batch , 1)
+
+    images_summary = tf.py_func(inv_preprocess, [image_batch, args.save_num_images, IMG_MEAN], tf.uint8)
+    labels_summary = tf.py_func(decode_labels, [label_batch, args.save_num_images, args.num_classes], tf.uint8)
+    preds_summary = tf.py_func(decode_labels, [pred, args.save_num_images, args.num_classes], tf.uint8)
     
     total_summary = tf.summary.image('images', 
                                      tf.concat(axis=2, values=[images_summary, labels_summary, preds_summary]), 
