@@ -192,9 +192,9 @@ def main():
     raw_gt075 = tf.reshape(label_proc075, [-1,])
     raw_gt05 = tf.reshape(label_proc05, [-1,])
     
-    indices = tf.squeeze(tf.where(tf.not_equal(raw_gt, args.ignore_label - 1)), 1)
-    indices075 = tf.squeeze(tf.where(tf.not_equal(raw_gt075, args.ignore_label - 1)), 1)
-    indices05 = tf.squeeze(tf.where(tf.not_equal(raw_gt05, args.ignore_label - 1)), 1)
+    indices = tf.squeeze(tf.where(tf.not_equal(raw_gt, args.ignore_label)), 1)
+    indices075 = tf.squeeze(tf.where(tf.not_equal(raw_gt075, args.ignore_label)), 1)
+    indices05 = tf.squeeze(tf.where(tf.not_equal(raw_gt05, args.ignore_label)), 1)
     
     gt = tf.cast(tf.gather(raw_gt, indices), tf.int32)
     gt075 = tf.cast(tf.gather(raw_gt075, indices075), tf.int32)
