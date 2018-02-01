@@ -186,6 +186,7 @@ def main():
     
     # Cross Entropy Loss --> Be careful about 'gt' input format -->has to be 0-based: [0:n_classes -1]
     if args.ignore_label == 0:
+        label_batch = tf.to_int32(label_batch)
         label_batch = label_batch -1
 
     label_proc = prepare_label(label_batch, tf.stack(raw_output.get_shape()[1:3]), num_classes=args.num_classes, one_hot=False) # [batch_size, h, w]
