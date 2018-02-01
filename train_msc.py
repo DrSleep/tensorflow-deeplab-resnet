@@ -225,7 +225,7 @@ def main():
     pred = tf.expand_dims(raw_output_up, dim=3)
     
     # Image summary.
-    if ignore_label == 0:
+    if args.ignore_label == 0:
         images_summary = tf.py_func(inv_preprocess, [image_batch, args.save_num_images, IMG_MEAN], tf.uint8)
         labels_summary = tf.py_func(decode_labels, [label_batch + 1, args.save_num_images, args.num_classes], tf.uint8)
         preds_summary = tf.py_func(decode_labels, [pred + 1, args.save_num_images, args.num_classes], tf.uint8)
