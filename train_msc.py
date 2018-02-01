@@ -234,7 +234,7 @@ def main():
     base_lr = tf.constant(args.learning_rate)
     step_ph = tf.placeholder(dtype=tf.float32, shape=())
     learning_rate = tf.scalar_mul(base_lr, tf.pow((1 - step_ph / args.num_steps), args.power))
-    
+    tf.summary.scalar('learning_rate', learning_rate)
     opt_conv = tf.train.MomentumOptimizer(learning_rate, args.momentum)
     opt_fc_w = tf.train.MomentumOptimizer(learning_rate * 10.0, args.momentum)
     opt_fc_b = tf.train.MomentumOptimizer(learning_rate * 20.0, args.momentum)
@@ -264,6 +264,12 @@ def main():
 
     train_op = tf.group(train_op_conv, train_op_fc_w, train_op_fc_b)
     
+    # Log variables
+
+    tf.summary.scalar("reduced_loss", reduced_loss)
+    for v in conv_trainable + fc_w_trainable + fc_b_trainable:
+        tf.summary.histogram(v.name.replace(":", "_"), v)
+    merged_summary_op = tf.summary.merge_all()
     
     # Set up tf session and initialize variables. 
     config = tf.ConfigProto()
@@ -274,7 +280,7 @@ def main():
     sess.run(init)
     
     # Saver for storing checkpoints of the model.
-    saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=10)
+    saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=4, keep_checkpoint_every_n_hours=4)
     
     # Load variables if the checkpoint is provided.
     if args.restore_from is not None:
@@ -303,7 +309,8 @@ def main():
 
         # Apply gradients.
         if step % args.save_pred_every == 0:
-            images, labels, summary, _ = sess.run([image_batch, label_batch, total_summary, train_op], feed_dict=feed_dict)
+        # if True:
+            images, labels, summary, _ = sess.run([image_batch, label_batch, merged_summary_op, train_op], feed_dict=feed_dict)
             summary_writer.add_summary(summary, step)
             save(saver, sess, args.snapshot_dir, step)
         else:
