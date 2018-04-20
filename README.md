@@ -76,7 +76,7 @@ pip install -r requirements.txt
 ```
 or for a local installation
 ```bash
-pip install -user -r requirements.txt
+pip install --user -r requirements.txt
 ```
 
 ## Caffe to TensorFlow conversion
