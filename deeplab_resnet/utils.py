@@ -38,6 +38,23 @@ def decode_labels(mask, num_images=1, num_classes=21):
       outputs[i] = np.array(img)
     return outputs
 
+def decode_labels_old(mask, num_classes):
+    """Decode batch of segmentation masks.
+    
+    Args:
+      label_batch: result of inference after taking argmax.
+    
+    Returns:
+      An batch of RGB images of the same size
+    """
+    img = Image.new('RGB', (len(mask[0]), len(mask)))
+    pixels = img.load()
+    for j_, j in enumerate(mask):
+        for k_, k in enumerate(j):
+            if k < num_classes:
+                pixels[k_,j_] = label_colours[k]
+    return np.array(img)
+
 def prepare_label(input_batch, new_size, num_classes, one_hot=True):
     """Resize masks and perform one-hot encoding.
 

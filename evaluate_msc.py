@@ -11,11 +11,14 @@ from datetime import datetime
 import os
 import sys
 import time
-
+import pandas as pd
 import tensorflow as tf
+import cv2
+from PIL import Image
 import numpy as np
+import scipy.io as sio
 
-from deeplab_resnet import DeepLabResNetModel, ImageReader, prepare_label
+from deeplab_resnet import DeepLabResNetModel, ImageReader, prepare_label, decode_labels_old
 
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 
@@ -25,6 +28,8 @@ IGNORE_LABEL = 255
 NUM_CLASSES = 21
 NUM_STEPS = 1449 # Number of images in the validation set.
 RESTORE_FROM = './deeplab_resnet.ckpt'
+OUTPUT_IMGS=True
+
 
 def get_arguments():
     """Parse all the arguments provided from the CLI.
@@ -45,6 +50,10 @@ def get_arguments():
                         help="Number of images in the validation set.")
     parser.add_argument("--restore-from", type=str, default=RESTORE_FROM,
                         help="Where restore model parameters from.")
+    parser.add_argument("--save-dir", type=str, default=None,
+                        help="Save output directory")
+    parser.add_argument("--save-dir-ind", type=str, default=None,
+                        help="Save output directory")    
     return parser.parse_args()
 
 def load(saver, sess, ckpt_path):
@@ -105,10 +114,10 @@ def main():
     pred = tf.expand_dims(raw_output, dim=3) # Create 4-d tensor.
     
     # mIoU
-    pred = tf.reshape(pred, [-1,])
+    pred_lin = tf.reshape(pred, [-1, ])
     gt = tf.reshape(label_batch, [-1,])
     weights = tf.cast(tf.less_equal(gt, args.num_classes - 1), tf.int32) # Ignoring all labels greater than or equal to n_classes.
-    mIoU, update_op = tf.contrib.metrics.streaming_mean_iou(pred, gt, num_classes=args.num_classes, weights=weights)
+    mIoU, update_op = tf.contrib.metrics.streaming_mean_iou(pred_lin, gt, num_classes=args.num_classes, weights=weights)
     
     # Set up tf session and initialize variables. 
     config = tf.ConfigProto()
@@ -124,14 +133,39 @@ def main():
     if args.restore_from is not None:
         load(loader, sess, args.restore_from)
     
+    # Output dirs
+    if not os.path.exists(args.save_dir):
+        os.makedirs(args.save_dir) 
+    if not os.path.exists(args.save_dir_ind):
+        os.makedirs(args.save_dir_ind)
+    # Iterate over test files
+    data_info = pd.read_csv(args.data_list, header=None)
+    num_test_files = data_info.shape[0]  # For computing Iter
+    imgList = np.asarray(data_info.iloc[:, 0])
+    NUM_STEPS = len(imgList)
+    print("Num test files = " + str(NUM_STEPS))
+
     # Start queue threads.
     threads = tf.train.start_queue_runners(coord=coord, sess=sess)
     
     # Iterate over training steps.
-    for step in range(args.num_steps):
-        preds, _ = sess.run([pred, update_op])
+    # for step in range(args.num_steps):
+    for step in range(NUM_STEPS):
+        preds, preds_lin, _ = sess.run([pred, pred_lin, update_op])
         if step % 100 == 0:
             print('step {:d}'.format(step))
+        if OUTPUT_IMGS:
+            # print(np.array(preds).shape)
+            msk = decode_labels_old(np.array(preds)[0, :, :, 0], args.num_classes)
+            im = Image.fromarray(msk)
+            im_name = imgList[step].split('/')[2]
+            im.save(args.save_dir + '/' + im_name)
+
+            mask_ind = np.array(preds)[0, :, :, 0]
+            cv2.imwrite(args.save_dir_ind + '/' + im_name, mask_ind)
+
+
+
     print('Mean IoU: {:.3f}'.format(mIoU.eval(session=sess)))
     coord.request_stop()
     coord.join(threads)
