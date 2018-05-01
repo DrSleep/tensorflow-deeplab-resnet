@@ -17,6 +17,8 @@ import tensorflow as tf
 import numpy as np
 
 from deeplab_resnet import DeepLabResNetModel, ImageReader, decode_labels, prepare_label
+import cv2
+
 
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
     
@@ -29,19 +31,14 @@ def get_arguments():
     Returns:
       A list of parsed arguments.
     """
-    parser = argparse.ArgumentParser(description="DeepLabLFOV Network Inference.")
+    parser = argparse.ArgumentParser(description="DeepLabLFOV Network Inference(webcam).")
 
-    parser.add_argument("img_path", type=str,
-                        help="Path to the RGB image file.", default='./images/test_indoor2.jpg')
-
-    parser.add_argument("model_weights", type=str,
+    parser.add_argument("--model_weights", type=str,
                         help="Path to the file with model weights.", default='./deeplab_resnet.ckpt')
 
     parser.add_argument("--num-classes", type=int, default=NUM_CLASSES,
                         help="Number of classes to predict (including background).")
 
-    parser.add_argument("--save-dir", type=str, default=SAVE_DIR,
-                        help="Where to save predicted mask.")
     return parser.parse_args()
 
 def load(saver, sess, ckpt_path):
@@ -58,11 +55,24 @@ def load(saver, sess, ckpt_path):
 def main():
     """Create the model and start the evaluation process."""
     args = get_arguments()
-    
-    # Prepare image.
-    img = tf.image.decode_jpeg(tf.read_file(args.img_path), channels=3)
+
+    cv2.namedWindow("preview")
+    cv2.namedWindow("legend")
+    cv2.namedWindow("SemanticSegmentation")
+    leg = cv2.imread('./images/colour_scheme.png')
+    cv2.imshow('legend', leg)
+
+    vc = cv2.VideoCapture(0)
+
+    if vc.isOpened():  # try to get the first frame
+        rval, frame = vc.read()
+    else:
+        rval = False
+
+    # TODO : get resolution of webcam using opencv
+    img_input = tf.placeholder(dtype=tf.uint8, shape=[480,640,3])
     # Convert RGB to BGR.
-    img_r, img_g, img_b = tf.split(axis=2, num_or_size_splits=3, value=img)
+    img_r, img_g, img_b = tf.split(axis=2, num_or_size_splits=3, value=img_input)
     img = tf.cast(tf.concat(axis=2, values=[img_b, img_g, img_r]), dtype=tf.float32)
     # Extract mean.
     img -= IMG_MEAN 
@@ -93,15 +103,24 @@ def main():
     load(loader, sess, args.model_weights)
     
     # Perform inference.
-    preds = sess.run(pred)
-    
-    msk = decode_labels(preds, num_classes=args.num_classes)
-    im = Image.fromarray(msk[0])
-    if not os.path.exists(args.save_dir):
-        os.makedirs(args.save_dir)
-    im.save(args.save_dir + 'mask.png')
-    
-    print('The output file has been saved to {}'.format(args.save_dir + 'mask.png'))
+
+
+    while True:
+        preds = sess.run(pred,feed_dict={img_input:frame})
+
+        msk = decode_labels(preds, num_classes=args.num_classes)
+        im = Image.fromarray(msk[0])
+
+        open_cv_image = np.array(im)
+        # Convert RGB to BGR
+        open_cv_image = open_cv_image[:, :, ::-1].copy()
+
+        cv2.imshow("SemanticSegmentation", open_cv_image)
+        cv2.imshow("preview", frame)
+        rval, frame = vc.read()
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
     
 if __name__ == '__main__':
