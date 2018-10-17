@@ -5,6 +5,12 @@ slim = tf.contrib.slim
 DEFAULT_PADDING = 'SAME'
 
 
+try:
+  basestring
+except NameError:
+  basestring = str
+
+
 def layer(op):
     '''Decorator for composable network layers.'''
 
@@ -186,7 +192,7 @@ class Network(object):
                 # ReLU non-linearity
                 output = tf.nn.relu(output, name=scope.name)
             return output
-        
+
     @layer
     def relu(self, input, name):
         return tf.nn.relu(input, name=name)
@@ -256,7 +262,7 @@ class Network(object):
             else:
                 raise ValueError('Rank 2 tensor input expected for softmax!')
         return tf.nn.softmax(input, name)
-        
+
     @layer
     def batch_normalization(self, input, name, is_training, activation_fn=None, scale=True):
         with tf.variable_scope(name) as scope:
