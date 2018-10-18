@@ -94,8 +94,14 @@ def main():
     # mIoU
     pred = tf.reshape(pred, [-1,])
     gt = tf.reshape(label_batch, [-1,])
-    weights = tf.cast(tf.less_equal(gt, args.num_classes - 1), tf.int32) # Ignoring all labels greater than or equal to n_classes.
-    mIoU, update_op = tf.contrib.metrics.streaming_mean_iou(pred, gt, num_classes=args.num_classes, weights=weights)
+    # https://github.com/DrSleep/tensorflow-deeplab-resnet/issues/107
+    # weights = tf.cast(tf.less_equal(gt, args.num_classes - 1), tf.int32) # Ignoring all labels greater than or equal to n_classes.
+    # mIoU, update_op = tf.contrib.metrics.streaming_mean_iou(pred, gt, num_classes=args.num_classes, weights=weights)
+    num_classes = args.num_classes
+    indices = tf.squeeze(tf.where(tf.less_equal(gt, num_classes - 1)), 1)  # ignore all labels >= num_classes
+    gt = tf.cast(tf.gather(gt, indices), tf.int32)
+    pred = tf.gather(pred, indices)
+    mIoU, update_op = tf.contrib.metrics.streaming_mean_iou(pred, gt, num_classes=num_classes)
 
     # Set up tf session and initialize variables.
     config = tf.ConfigProto()
