@@ -28,7 +28,7 @@ RESTORE_FROM = './deeplab_resnet.ckpt'
 
 def get_arguments():
     """Parse all the arguments provided from the CLI.
-    
+
     Returns:
       A list of parsed arguments.
     """
@@ -49,22 +49,22 @@ def get_arguments():
 
 def load(saver, sess, ckpt_path):
     '''Load trained weights.
-    
+
     Args:
       saver: TensorFlow saver object.
       sess: TensorFlow session.
       ckpt_path: path to checkpoint file with parameters.
-    ''' 
+    '''
     saver.restore(sess, ckpt_path)
     print("Restored model parameters from {}".format(ckpt_path))
 
 def main():
     """Create the model and start the evaluation process."""
     args = get_arguments()
-    
+
     # Create queue coordinator.
     coord = tf.train.Coordinator()
-    
+
     # Load reader.
     with tf.name_scope("create_inputs"):
         reader = ImageReader(
@@ -84,36 +84,36 @@ def main():
 
     # Which variables to load.
     restore_var = tf.global_variables()
-    
+
     # Predictions.
     raw_output = net.layers['fc1_voc12']
     raw_output = tf.image.resize_bilinear(raw_output, tf.shape(image_batch)[1:3,])
     raw_output = tf.argmax(raw_output, dimension=3)
     pred = tf.expand_dims(raw_output, dim=3) # Create 4-d tensor.
-    
+
     # mIoU
     pred = tf.reshape(pred, [-1,])
     gt = tf.reshape(label_batch, [-1,])
     weights = tf.cast(tf.less_equal(gt, args.num_classes - 1), tf.int32) # Ignoring all labels greater than or equal to n_classes.
     mIoU, update_op = tf.contrib.metrics.streaming_mean_iou(pred, gt, num_classes=args.num_classes, weights=weights)
-    
-    # Set up tf session and initialize variables. 
+
+    # Set up tf session and initialize variables.
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
     init = tf.global_variables_initializer()
-    
+
     sess.run(init)
     sess.run(tf.local_variables_initializer())
-    
+
     # Load weights.
     loader = tf.train.Saver(var_list=restore_var)
     if args.restore_from is not None:
         load(loader, sess, args.restore_from)
-    
+
     # Start queue threads.
     threads = tf.train.start_queue_runners(coord=coord, sess=sess)
-    
+
     # Iterate over training steps.
     for step in range(args.num_steps):
         preds, _ = sess.run([pred, update_op])
@@ -122,6 +122,6 @@ def main():
     print('Mean IoU: {:.3f}'.format(mIoU.eval(session=sess)))
     coord.request_stop()
     coord.join(threads)
-    
+
 if __name__ == '__main__':
     main()
