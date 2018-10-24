@@ -96,7 +96,9 @@ def main():
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
     im.save(args.save_dir + 'mask.png')
-    
+    im = Image.fromarray(preds[0, :, :, 0], 'L')
+    im.save(args.save_dir + 'preds.png')
+
     print('The output file has been saved to {}'.format(args.save_dir + 'mask.png'))
 
     
