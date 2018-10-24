@@ -1,3 +1,5 @@
 __pycache__
 snapshots/
+output/
+*.jpeg
 *.ckpt
