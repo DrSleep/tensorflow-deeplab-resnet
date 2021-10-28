@@ -184,6 +184,11 @@ def main():
     raw_prediction075 = tf.reshape(raw_output075, [-1, args.num_classes])
     raw_prediction05 = tf.reshape(raw_output05, [-1, args.num_classes])
     
+    # Cross Entropy Loss --> Be careful about 'gt' input format -->has to be 0-based: [0:n_classes -1]
+    # if args.ignore_label == 0:
+    #     label_batch = tf.to_int32(label_batch)
+    #     label_batch = tf.subtract(label_batch , 1)
+
     label_proc = prepare_label(label_batch, tf.stack(raw_output.get_shape()[1:3]), num_classes=args.num_classes, one_hot=False) # [batch_size, h, w]
     label_proc075 = prepare_label(label_batch, tf.stack(raw_output075.get_shape()[1:3]), num_classes=args.num_classes, one_hot=False)
     label_proc05 = prepare_label(label_batch, tf.stack(raw_output05.get_shape()[1:3]), num_classes=args.num_classes, one_hot=False)
@@ -192,9 +197,9 @@ def main():
     raw_gt075 = tf.reshape(label_proc075, [-1,])
     raw_gt05 = tf.reshape(label_proc05, [-1,])
     
-    indices = tf.squeeze(tf.where(tf.less_equal(raw_gt, args.num_classes - 1)), 1)
-    indices075 = tf.squeeze(tf.where(tf.less_equal(raw_gt075, args.num_classes - 1)), 1)
-    indices05 = tf.squeeze(tf.where(tf.less_equal(raw_gt05, args.num_classes - 1)), 1)
+    indices = tf.squeeze(tf.where(tf.not_equal(raw_gt, args.ignore_label)), 1)
+    indices075 = tf.squeeze(tf.where(tf.not_equal(raw_gt075, args.ignore_label)), 1)
+    indices05 = tf.squeeze(tf.where(tf.not_equal(raw_gt05, args.ignore_label)), 1)
     
     gt = tf.cast(tf.gather(raw_gt, indices), tf.int32)
     gt075 = tf.cast(tf.gather(raw_gt075, indices075), tf.int32)
@@ -220,6 +225,9 @@ def main():
     pred = tf.expand_dims(raw_output_up, dim=3)
     
     # Image summary.
+    # if args.ignore_label == 0:
+    #     label_batch = tf.add(label_batch , 1)
+
     images_summary = tf.py_func(inv_preprocess, [image_batch, args.save_num_images, IMG_MEAN], tf.uint8)
     labels_summary = tf.py_func(decode_labels, [label_batch, args.save_num_images, args.num_classes], tf.uint8)
     preds_summary = tf.py_func(decode_labels, [pred, args.save_num_images, args.num_classes], tf.uint8)
@@ -234,7 +242,7 @@ def main():
     base_lr = tf.constant(args.learning_rate)
     step_ph = tf.placeholder(dtype=tf.float32, shape=())
     learning_rate = tf.scalar_mul(base_lr, tf.pow((1 - step_ph / args.num_steps), args.power))
-    
+    tf.summary.scalar('learning_rate', learning_rate)
     opt_conv = tf.train.MomentumOptimizer(learning_rate, args.momentum)
     opt_fc_w = tf.train.MomentumOptimizer(learning_rate * 10.0, args.momentum)
     opt_fc_b = tf.train.MomentumOptimizer(learning_rate * 20.0, args.momentum)
@@ -264,6 +272,12 @@ def main():
 
     train_op = tf.group(train_op_conv, train_op_fc_w, train_op_fc_b)
     
+    # Log variables
+
+    tf.summary.scalar("reduced_loss", reduced_loss)
+    for v in conv_trainable + fc_w_trainable + fc_b_trainable:
+        tf.summary.histogram(v.name.replace(":", "_"), v)
+    merged_summary_op = tf.summary.merge_all()
     
     # Set up tf session and initialize variables. 
     config = tf.ConfigProto()
@@ -274,7 +288,7 @@ def main():
     sess.run(init)
     
     # Saver for storing checkpoints of the model.
-    saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=10)
+    saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=4, keep_checkpoint_every_n_hours=4)
     
     # Load variables if the checkpoint is provided.
     if args.restore_from is not None:
@@ -303,7 +317,8 @@ def main():
 
         # Apply gradients.
         if step % args.save_pred_every == 0:
-            images, labels, summary, _ = sess.run([image_batch, label_batch, total_summary, train_op], feed_dict=feed_dict)
+        # if True:
+            images, labels, summary, _ = sess.run([image_batch, label_batch, merged_summary_op, train_op], feed_dict=feed_dict)
             summary_writer.add_summary(summary, step)
             save(saver, sess, args.snapshot_dir, step)
         else:

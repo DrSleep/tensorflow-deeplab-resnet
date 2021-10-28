@@ -89,6 +89,7 @@ def read_labeled_image_list(data_dir, data_list):
             image = mask = line.strip("\n")
         images.append(data_dir + image)
         masks.append(data_dir + mask)
+        print(data_dir + image + " " + data_dir + mask)
     return images, masks
 
 def read_images_from_disk(input_queue, input_size, random_scale, random_mirror, ignore_label, img_mean): # optional pre-processing arguments
